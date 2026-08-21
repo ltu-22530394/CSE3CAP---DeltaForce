@@ -57,7 +57,7 @@ export function RegisterForm(): ReactElement {
 
   return (
     <section className="auth-panel" aria-labelledby="register-heading">
-      <h2 id="register-heading">Create Account</h2>
+      <h1 id="register-heading">Create Account</h1>
       <p>Fill in your details to create an account.</p>
 
       <Alert>{requestError}</Alert>

@@ -1,4 +1,3 @@
-import { getStoredSession } from '../auth/authSession'
 import type {
   ApplicationStatus,
   ApplicationWriteInput,
@@ -6,11 +5,8 @@ import type {
 } from './applicationModel'
 
 const MOCK_APPLICATIONS_KEY = 'gap.mock.applications'
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/$/, '')
-const useMockApi = import.meta.env.VITE_USE_MOCK_API !== 'false' || !apiBaseUrl
-const applicationsPath = import.meta.env.VITE_APPLICATIONS_PATH || '/applications'
 
-interface ApplicationService {
+export interface ApplicationService {
   list(applicantId: string): Promise<StoredApplication[]>
   get(applicationId: string, applicantId: string): Promise<StoredApplication>
   saveDraft(application: ApplicationWriteInput): Promise<StoredApplication>
@@ -85,27 +81,7 @@ function upsertMockApplication({
   return application
 }
 
-async function requestJson<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
-  const token = getStoredSession()?.token
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    ...options,
-  })
-  const body = (await response.json().catch(() => ({}))) as T & { message?: string }
-
-  if (!response.ok) {
-    throw serviceError(body.message || 'The request could not be completed.', 'API_ERROR')
-  }
-  return body
-}
-
-const mockApplicationService: ApplicationService = {
+export const applicationService: ApplicationService = {
   async list(applicantId: string) {
     return newestFirst(
       readMockApplications().filter(
@@ -137,45 +113,3 @@ const mockApplicationService: ApplicationService = {
     })
   },
 }
-
-const httpApplicationService: ApplicationService = {
-  list(_applicantId: string) {
-    return requestJson<StoredApplication[]>(applicationsPath)
-  },
-
-  get(applicationIdValue: string, _applicantId: string) {
-    return requestJson<StoredApplication>(`${applicationsPath}/${applicationIdValue}`)
-  },
-
-  saveDraft(application: ApplicationWriteInput) {
-    const path = application.id
-      ? `${applicationsPath}/${application.id}`
-      : applicationsPath
-    return requestJson<StoredApplication>(path, {
-      method: application.id ? 'PUT' : 'POST',
-      body: JSON.stringify({
-        currentStep: application.currentStep,
-        status: 'draft',
-        form: application.form,
-      }),
-    })
-  },
-
-  submit(application: ApplicationWriteInput) {
-    const path = application.id
-      ? `${applicationsPath}/${application.id}`
-      : applicationsPath
-    return requestJson<StoredApplication>(path, {
-      method: application.id ? 'PUT' : 'POST',
-      body: JSON.stringify({
-        currentStep: 3,
-        status: 'submitted',
-        form: application.form,
-      }),
-    })
-  },
-}
-
-export const applicationService: ApplicationService = useMockApi
-  ? mockApplicationService
-  : httpApplicationService

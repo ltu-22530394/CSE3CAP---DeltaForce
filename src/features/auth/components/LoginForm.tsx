@@ -52,7 +52,7 @@ export function LoginForm(): ReactElement {
 
   return (
     <section className="auth-panel" aria-labelledby="login-heading">
-      <h2 id="login-heading">Login</h2>
+      <h1 id="login-heading">Applicant Login</h1>
       <p>Welcome back! Please login to your account.</p>
 
       <Alert tone="success">{locationState?.registrationMessage}</Alert>

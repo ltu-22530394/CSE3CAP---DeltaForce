@@ -7,16 +7,18 @@ import { RegisterForm } from '../components/RegisterForm'
 
 export function AuthPage(): ReactElement {
   const { pathname } = useLocation()
-  const activePanel = pathname === '/register' ? 'register' : 'login'
+  const isRegisterPage = pathname === '/register'
 
   return (
-    <div className="public-page">
+    <div className="public-page public-page--auth">
       <AppHeader />
-      <main className="auth-page">
-        <h1>Applicant Login / Register</h1>
-        <div className={`auth-grid auth-grid--${activePanel}`}>
-          <LoginForm />
-          <RegisterForm />
+      <main
+        className={`auth-page auth-page--overlay${
+          isRegisterPage ? ' auth-page--register' : ''
+        }`}
+      >
+        <div className="auth-card">
+          {isRegisterPage ? <RegisterForm /> : <LoginForm />}
         </div>
       </main>
     </div>

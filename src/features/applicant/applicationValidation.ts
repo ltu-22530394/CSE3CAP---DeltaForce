@@ -13,6 +13,29 @@ function required(value: unknown, message: string): string | undefined {
   return String(value ?? '').trim() ? undefined : message
 }
 
+function parseDateOfBirth(value: string): Date | null {
+  const trimmedValue = value.trim()
+  const dayFirstMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmedValue)
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmedValue)
+
+  const year = Number(dayFirstMatch?.[3] ?? isoMatch?.[1])
+  const month = Number(dayFirstMatch?.[2] ?? isoMatch?.[2])
+  const day = Number(dayFirstMatch?.[1] ?? isoMatch?.[3])
+
+  if (!year || !month || !day) return null
+
+  const parsedDate = new Date(year, month - 1, day)
+  if (
+    parsedDate.getFullYear() !== year ||
+    parsedDate.getMonth() !== month - 1 ||
+    parsedDate.getDate() !== day
+  ) {
+    return null
+  }
+
+  return parsedDate
+}
+
 function validatePersonalDetails(form: ApplicationForm): ApplicationErrors {
   const errors: ApplicationErrors = {}
 
@@ -22,8 +45,13 @@ function validatePersonalDetails(form: ApplicationForm): ApplicationErrors {
   errors.phone = required(form.phone, 'Phone number is required.')
   errors.address = required(form.address, 'Address is required.')
 
-  if (!errors.dateOfBirth && new Date(form.dateOfBirth) > new Date()) {
-    errors.dateOfBirth = 'Date of birth cannot be in the future.'
+  if (!errors.dateOfBirth) {
+    const dateOfBirth = parseDateOfBirth(form.dateOfBirth)
+    if (!dateOfBirth) {
+      errors.dateOfBirth = 'Enter the date as DD/MM/YYYY.'
+    } else if (dateOfBirth > new Date()) {
+      errors.dateOfBirth = 'Date of birth cannot be in the future.'
+    }
   }
   if (!errors.email && !EMAIL_PATTERN.test(form.email.trim())) {
     errors.email = 'Enter a valid email address.'

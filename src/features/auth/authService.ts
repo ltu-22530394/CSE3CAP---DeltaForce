@@ -7,16 +7,11 @@ import type {
 
 const MOCK_USERS_KEY = 'gap.mock.applicant-users'
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/$/, '')
-const useMockApi = import.meta.env.VITE_USE_MOCK_API !== 'false' || !apiBaseUrl
-const registerPath = import.meta.env.VITE_AUTH_REGISTER_PATH || '/auth/register'
-const loginPath = import.meta.env.VITE_AUTH_LOGIN_PATH || '/auth/login'
-
 interface MockUser extends ApplicantUser {
   passwordHash: string
 }
 
-interface AuthService {
+export interface AuthService {
   register(details: RegistrationDetails): Promise<ApplicantUser>
   login(credentials: LoginCredentials): Promise<AuthSession>
 }
@@ -46,24 +41,7 @@ function applicantId(): string {
   return window.crypto.randomUUID?.() ?? `applicant-${Date.now()}`
 }
 
-async function requestJson<T>(
-  path: string,
-  options: RequestInit,
-): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  })
-  const body = (await response.json().catch(() => ({}))) as T & { message?: string }
-
-  if (!response.ok) {
-    throw serviceError(body.message || 'The request could not be completed.', 'API_ERROR')
-  }
-
-  return body
-}
-
-const mockAuthService: AuthService = {
+export const authService: AuthService = {
   async register({ fullName, email, password }: RegistrationDetails) {
     const users = readMockUsers()
     const normalizedEmail = email.trim().toLowerCase()
@@ -101,33 +79,3 @@ const mockAuthService: AuthService = {
     }
   },
 }
-
-const httpAuthService: AuthService = {
-  register(details: RegistrationDetails) {
-    return requestJson<ApplicantUser>(registerPath, {
-      method: 'POST',
-      body: JSON.stringify({
-        fullName: details.fullName.trim(),
-        email: details.email.trim().toLowerCase(),
-        password: details.password,
-      }),
-    })
-  },
-
-  async login(credentials: LoginCredentials) {
-    const response = await requestJson<Partial<AuthSession>>(loginPath, {
-      method: 'POST',
-      body: JSON.stringify({
-        email: credentials.email.trim().toLowerCase(),
-        password: credentials.password,
-      }),
-    })
-
-    if (!response.token || !response.user) {
-      throw serviceError('The login response is missing session data.', 'INVALID_RESPONSE')
-    }
-    return { token: response.token, user: response.user }
-  },
-}
-
-export const authService: AuthService = useMockApi ? mockAuthService : httpAuthService

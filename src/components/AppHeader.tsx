@@ -13,9 +13,7 @@ export function AppHeader({
   return (
     <header className="site-header">
       <div className="brand" aria-label="Greyhound Adoption Program">
-        <div className="brand__logo" aria-hidden="true">
-          LOGO
-        </div>
+        <img className="brand__logo" src="/assets/gap-logo.png" alt="" aria-hidden="true" />
         <div>
           <p className="brand__name">GAP</p>
           <p className="brand__label">{portalLabel}</p>

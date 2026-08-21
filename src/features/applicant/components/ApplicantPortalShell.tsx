@@ -26,9 +26,12 @@ export function ApplicantPortalShell({
     <div className="applicant-shell">
       <aside className="portal-sidebar">
         <Link className="portal-brand" to="/applicant" aria-label="GAP Applicant Portal">
-          <span className="portal-brand__logo" aria-hidden="true">
-            LOGO
-          </span>
+          <img
+            className="portal-brand__logo"
+            src="/assets/gap-logo.png"
+            alt=""
+            aria-hidden="true"
+          />
           <span>
             <strong>GAP</strong>
             <small>Applicant Portal</small>
@@ -55,14 +58,14 @@ export function ApplicantPortalShell({
           </Link>
         </nav>
 
-        <button className="portal-logout" type="button" onClick={handleLogout}>
-          Log Out
-        </button>
       </aside>
 
       <div className="portal-content">
         <header className="portal-topbar">
           <p>Welcome, {user.fullName}</p>
+          <button className="portal-topbar__logout" type="button" onClick={handleLogout}>
+            Log Out
+          </button>
         </header>
         {children}
       </div>

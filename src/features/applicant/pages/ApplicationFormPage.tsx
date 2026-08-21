@@ -205,7 +205,10 @@ function PersonalDetailsStep({
         id="application-date-of-birth"
         label="Date of Birth *"
         name="dateOfBirth"
-        type="date"
+        type="text"
+        inputMode="numeric"
+        placeholder="DD/MM/YYYY"
+        autoComplete="bday"
         value={form.dateOfBirth}
         error={errors.dateOfBirth}
         onChange={onChange}

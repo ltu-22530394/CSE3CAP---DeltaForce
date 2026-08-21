@@ -117,7 +117,7 @@ export function ApplicantDashboardPage(): ReactElement | null {
           <article className="dashboard-card">
             <p className="dashboard-card__label">Training Materials</p>
             <h2>Coming Later</h2>
-            <p>Materials become available after approval and dog assignment.</p>
+            <p>Materials become available after approval and a greyhound match.</p>
           </article>
         </section>
 
@@ -175,10 +175,6 @@ export function ApplicantDashboardPage(): ReactElement | null {
           </dl>
         </section>
 
-        <aside className="dashboard-note">
-          <strong>Thank you for considering fostering or adopting a greyhound.</strong>
-          <span>The GAP team will contact you after reviewing a submitted application.</span>
-        </aside>
       </main>
     </ApplicantPortalShell>
   )

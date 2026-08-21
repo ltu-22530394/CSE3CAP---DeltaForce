@@ -65,4 +65,14 @@ describe('application validation', () => {
   it('accepts a complete application', () => {
     expect(hasApplicationErrors(validateCompleteApplication(validForm()))).toBe(false)
   })
+
+  it('accepts an English day-first date and rejects an invalid date', () => {
+    const dayFirstForm = { ...validForm(), dateOfBirth: '12/04/1990' }
+    expect(validateApplicationStep(0, dayFirstForm).dateOfBirth).toBeUndefined()
+
+    const invalidDateForm = { ...validForm(), dateOfBirth: '31/02/1990' }
+    expect(validateApplicationStep(0, invalidDateForm).dateOfBirth).toBe(
+      'Enter the date as DD/MM/YYYY.',
+    )
+  })
 })
