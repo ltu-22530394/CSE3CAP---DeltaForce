@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+.env
+.npm-cache/
+server/data/*.sqlite
+server/data/*.sqlite-shm
+server/data/*.sqlite-wal

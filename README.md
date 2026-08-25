@@ -53,12 +53,82 @@ Open the local address displayed in the terminal, normally:
 http://localhost:5173
 ```
 
+## Authentication API
+
+The project now includes a local Node.js/Express authentication API backed by
+SQLite. It supports applicant account registration, login, JWT authentication,
+logout, current-user lookup, role middleware and basic audit logging.
+
+### API setup
+
+Create a local environment file:
+
+```bash
+copy .env.example .env
+```
+
+Then set a long random value for `JWT_SECRET`.
+
+Initialise the SQLite database:
+
+```bash
+npm run api:init-db
+```
+
+Start the API:
+
+```bash
+npm run api
+```
+
+The API normally runs at:
+
+```text
+http://localhost:4000
+```
+
+### Auth endpoints
+
+```text
+GET  /api/health
+POST /api/auth/register
+POST /api/auth/login
+GET  /api/auth/me
+POST /api/auth/logout
+```
+
+Register request body:
+
+```json
+{
+  "fullName": "Taylor Applicant",
+  "email": "taylor@example.com",
+  "password": "safe-password"
+}
+```
+
+Login returns a JWT. Send it to protected routes using:
+
+```text
+Authorization: Bearer <token>
+```
+
+Protected-route middleware is available for future sprint work:
+
+```text
+requireAuth
+requireRole(...)
+requireApplicant
+requireStaff
+```
+
 ### Optional commands
 
 ```bash
 npm run check
 npm run build
 npm run preview
+npm run api:test
 ```
 
 - `npm run check` runs linting, TypeScript checking, unit tests and a production build.
