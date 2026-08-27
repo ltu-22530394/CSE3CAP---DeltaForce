@@ -6,7 +6,7 @@
   "scripts": {
     "api": "node server/server.js",
     "api:init-db": "node server/scripts/init-db.js",
-    "api:test": "node --test server/tests/authApi.node-test.js",
+    "api:test": "node --test server/tests/*.node-test.js",
     "dev": "vite",
     "dev:api": "node --watch server/server.js",
     "build": "vite build",

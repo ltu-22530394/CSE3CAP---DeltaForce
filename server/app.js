@@ -5,6 +5,7 @@ import { config } from './config.js'
 import { initializeDatabase } from './database/db.js'
 import { authRouter } from './routes/authRoutes.js'
 import { protectedRouter } from './routes/protectedRoutes.js'
+import { applicationRouter } from './routes/applicationRoutes.js'
 import { ApiError } from './utils/apiError.js'
 
 export function createApp() {
@@ -25,6 +26,7 @@ export function createApp() {
   })
 
   app.use('/api/auth', authRouter)
+  app.use('/api/applications', applicationRouter)
   app.use('/api/protected', protectedRouter)
 
   app.use((_req, _res, next) => {
