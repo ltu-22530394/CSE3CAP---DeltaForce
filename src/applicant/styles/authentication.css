@@ -1,0 +1,188 @@
+
+.applicant-surface .auth-page {
+  width: min(640px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 56px 0 72px;
+}
+
+.applicant-surface .auth-page--overlay {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 4%;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(78, 32, 48, 0.02) 0%,
+      rgba(78, 32, 48, 0.08) 58%,
+      rgba(78, 32, 48, 0.28) 100%
+    ),
+    url('/assets/greyhound-login-background.webp') 0% 50% / cover no-repeat;
+}
+
+.applicant-surface .auth-page--overlay .auth-card {
+  width: 34%;
+  max-height: none;
+  overflow: visible;
+  background: rgba(255, 253, 251, 0.97);
+  backdrop-filter: blur(6px);
+}
+
+.applicant-surface .auth-page--overlay .auth-panel {
+  width: 100%;
+  padding: 8% 9%;
+}
+
+.applicant-surface .auth-page--register .auth-card {
+  width: 36%;
+}
+
+.applicant-surface .auth-page--register .auth-panel {
+  padding: 5% 8%;
+}
+
+.applicant-surface .auth-page--register .auth-panel h1 {
+  font-size: clamp(1.8rem, 3vw, 2.2rem);
+}
+
+.applicant-surface .auth-page--register .auth-panel > p {
+  margin-bottom: 20px;
+}
+
+.applicant-surface .auth-page--register .auth-panel form {
+  gap: 14px;
+}
+
+.applicant-surface .auth-page--register .form-field {
+  gap: 6px;
+}
+
+.applicant-surface .auth-page--register .form-field input {
+  min-height: 48px;
+  padding: 10px 14px;
+}
+
+.applicant-surface .auth-page--register .auth-panel__switch {
+  margin-top: 18px !important;
+}
+
+.applicant-surface .auth-card {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.applicant-surface .auth-panel {
+  padding: 40px clamp(28px, 5vw, 64px);
+}
+
+.applicant-surface .auth-panel h1,
+.applicant-surface .auth-panel > p {
+  text-align: center;
+}
+
+.applicant-surface .auth-panel h1 {
+  margin: 0 0 8px;
+  font-size: clamp(2rem, 5vw, 2.6rem);
+  color: var(--color-brand-dark);
+}
+
+.applicant-surface .auth-panel > p {
+  margin: 0 0 32px;
+}
+
+.applicant-surface .auth-panel form {
+  display: grid;
+  gap: 22px;
+}
+
+.applicant-surface .form-field {
+  display: grid;
+  gap: 8px;
+}
+
+.applicant-surface .form-field label {
+  font-weight: 600;
+}
+
+.applicant-surface .form-field input {
+  width: 100%;
+  min-height: 54px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 6px;
+  padding: 13px 16px;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.applicant-surface .form-field input[aria-invalid='true'] {
+  border-width: 2px;
+  border-color: var(--color-brand);
+}
+
+.applicant-surface .form-field input::placeholder,
+.applicant-surface .form-field textarea::placeholder {
+  color: var(--color-muted);
+}
+
+.applicant-surface .form-field input:disabled,
+.applicant-surface .form-field select:disabled,
+.applicant-surface .form-field textarea:disabled {
+  color: var(--color-muted);
+  background: var(--color-surface-soft);
+}
+
+.applicant-surface .password-input {
+  position: relative;
+}
+
+.applicant-surface .password-input input {
+  padding-right: 74px;
+}
+
+.applicant-surface .password-input__toggle {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  border: 0;
+  padding: 6px;
+  background: transparent;
+  text-decoration: underline;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.applicant-surface .field-error {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-brand-dark);
+}
+
+.applicant-surface .alert {
+  margin: 0 0 20px;
+  border: 1px solid var(--color-brand);
+  border-radius: 6px;
+  padding: 12px 14px;
+  background: var(--color-brand-soft);
+}
+
+.applicant-surface .alert--success {
+  background: var(--color-surface-soft);
+}
+
+.applicant-surface .auth-panel__switch {
+  margin-top: 28px !important;
+}
+
+.applicant-surface .auth-panel__switch a {
+  color: var(--color-brand);
+  font-weight: 700;
+}

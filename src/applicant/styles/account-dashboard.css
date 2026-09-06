@@ -1,0 +1,508 @@
+.applicant-surface .status-badge {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--color-brand);
+}
+
+/* Applicant-facing experience */
+.applicant-surface .applicant-shell {
+  min-height: 100vh;
+  display: block;
+  background: #f8f4f0;
+}
+
+.applicant-surface .applicant-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: 92px;
+  padding: 16px clamp(20px, 2vw, 32px) 16px clamp(24px, 5vw, 72px);
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  align-items: center;
+  gap: 28px;
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(255, 253, 251, 0.98);
+  backdrop-filter: blur(10px);
+}
+
+.applicant-surface .applicant-header .portal-brand {
+  padding: 0;
+  gap: 12px;
+  border: 0;
+  color: var(--color-text);
+}
+
+.applicant-surface .applicant-header .portal-brand__logo {
+  width: 58px;
+  height: 58px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.applicant-surface .applicant-header .portal-brand strong {
+  color: var(--color-brand-dark);
+  font-size: 1.35rem;
+}
+
+.applicant-surface .applicant-header .portal-brand small {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.applicant-surface .applicant-account {
+  position: relative;
+  justify-self: end;
+}
+
+.applicant-surface .applicant-account__trigger {
+  min-height: 48px;
+  padding: 5px 9px 5px 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-text);
+  background: transparent;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background 160ms ease;
+}
+
+.applicant-surface .applicant-account__trigger:hover,
+.applicant-surface .applicant-account__trigger:focus-visible,
+.applicant-surface .applicant-account__trigger.is-open {
+  color: var(--color-brand-dark);
+  background: var(--color-brand-soft);
+}
+
+.applicant-surface .applicant-account__avatar {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-brand-dark);
+  background: #eee6e3;
+  font-size: 0.86rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.applicant-surface .applicant-account__chevron {
+  width: 7px;
+  height: 7px;
+  margin: -3px 3px 0 1px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.applicant-surface .applicant-account__trigger.is-open .applicant-account__chevron {
+  margin-top: 3px;
+  transform: rotate(225deg);
+}
+
+.applicant-surface .applicant-account-dialog {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 60;
+  width: min(300px, calc(100vw - 32px));
+  padding: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #fffdfb;
+  box-shadow: 0 18px 45px rgba(62, 35, 42, 0.16);
+}
+
+.applicant-surface .applicant-account-dialog h2 {
+  margin: 3px 0 0;
+  color: var(--color-text);
+  font-size: 1.15rem;
+}
+
+.applicant-surface .applicant-account-dialog__email {
+  margin: 6px 0 20px;
+  color: var(--color-muted);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.applicant-surface .applicant-account-dialog__logout {
+  width: 100%;
+  min-height: 43px;
+  border: 1px solid var(--color-brand);
+  border-radius: 6px;
+  color: #fff;
+  background: var(--color-brand);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.applicant-surface .applicant-account-dialog__logout:hover,
+.applicant-surface .applicant-account-dialog__logout:focus-visible {
+  background: var(--color-brand-dark);
+}
+
+.applicant-surface .dashboard-page {
+  width: min(1180px, calc(100% - 48px));
+  padding: 44px 0 72px;
+}
+
+.applicant-surface .applicant-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding-bottom: 30px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.applicant-surface .applicant-page-header h1 {
+  margin: 3px 0 0;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  letter-spacing: -0.035em;
+}
+
+.applicant-surface .applicant-page-header > div > p:last-child {
+  max-width: 620px;
+  margin: 9px 0 0;
+  color: var(--color-muted);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.applicant-surface .applicant-page-header .primary-button {
+  flex: 0 0 auto;
+  min-height: 46px;
+  padding-inline: 22px;
+}
+
+.applicant-surface input[type='date'] {
+  cursor: pointer;
+}
+
+.applicant-surface .applicant-dashboard-grid {
+  margin-top: 32px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(270px, 0.65fr);
+  align-items: start;
+  gap: 32px;
+}
+
+.applicant-surface .applicant-dashboard-main,
+.applicant-surface .applicant-dashboard-aside {
+  min-width: 0;
+}
+
+.applicant-surface .current-application,
+.applicant-surface .application-process {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.applicant-surface .current-application {
+  border: 0;
+}
+
+.applicant-surface .current-application__heading {
+  min-height: auto;
+  padding: 8px 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 0;
+}
+
+.applicant-surface .current-application__heading h2,
+.applicant-surface .application-process h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.applicant-surface .current-application__loading {
+  margin: 0;
+  padding: 28px 0;
+  color: var(--color-brand);
+}
+
+.applicant-surface .application-details {
+  padding: 0 0 22px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.applicant-surface .application-details div {
+  min-width: 0;
+}
+
+.applicant-surface .application-details span,
+.applicant-surface .application-details strong {
+  display: block;
+}
+
+.applicant-surface .application-details span,
+.applicant-surface .next-step-panel span {
+  margin-bottom: 6px;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.applicant-surface .next-step-panel {
+  margin: 0;
+  padding: 12px 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-top: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.applicant-surface .next-step-panel > div {
+  min-width: 0;
+}
+
+.applicant-surface .next-step-panel span,
+.applicant-surface .next-step-panel strong {
+  display: block;
+}
+
+.applicant-surface .next-step-panel strong {
+  max-width: 510px;
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.applicant-surface .next-step-panel .secondary-button {
+  min-height: 42px;
+  flex: 0 0 auto;
+  padding: 9px 16px;
+  border-radius: 6px;
+  background: #fffdfb;
+}
+
+.applicant-surface .current-application__empty {
+  padding: 28px 0 30px;
+}
+
+.applicant-surface .current-application__empty h3 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+
+.applicant-surface .current-application__empty p {
+  max-width: 550px;
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+
+.applicant-surface .text-action {
+  margin-top: 17px;
+  display: inline-block;
+  color: var(--color-brand);
+  font-weight: 700;
+  text-underline-offset: 4px;
+}
+
+.applicant-surface .application-process {
+  padding: 0;
+}
+
+.applicant-surface .applicant-dashboard-aside {
+  border-left: 1px solid var(--color-border);
+  padding-left: 32px;
+}
+
+.applicant-surface .application-process ol {
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.applicant-surface .application-process li {
+  position: relative;
+  padding: 0 0 25px 42px;
+  display: flex;
+  gap: 12px;
+}
+
+.applicant-surface .application-process li:last-child {
+  padding-bottom: 0;
+}
+
+.applicant-surface .application-process li::after {
+  content: '';
+  position: absolute;
+  top: 29px;
+  bottom: 4px;
+  left: 14px;
+  width: 1px;
+  background: var(--color-border);
+}
+
+.applicant-surface .application-process li:last-child::after {
+  display: none;
+}
+
+.applicant-surface .application-process li > span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-brand);
+  border-radius: 50%;
+  color: var(--color-brand);
+  font-size: 0.84rem;
+  font-weight: 750;
+  background: #fffdfb;
+}
+
+.applicant-surface .application-process strong,
+.applicant-surface .application-process small {
+  display: block;
+}
+
+.applicant-surface .application-process strong {
+  line-height: 1.35;
+}
+
+.applicant-surface .application-process small {
+  margin-top: 5px;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+  line-height: 1.48;
+}
+
+.applicant-surface .application-history {
+  margin-top: 28px;
+  border-top: 1px solid var(--color-border);
+}
+
+.applicant-surface .application-history summary {
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 700;
+  list-style: none;
+  cursor: pointer;
+}
+
+.applicant-surface .application-history summary::-webkit-details-marker {
+  display: none;
+}
+
+.applicant-surface .application-history summary:hover,
+.applicant-surface .application-history summary:focus-visible {
+  color: var(--color-brand-dark);
+}
+
+.applicant-surface .application-history__summary-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.applicant-surface .application-history__chevron {
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.applicant-surface .application-history[open] .application-history__chevron {
+  margin-top: 4px;
+  transform: rotate(225deg);
+}
+
+.applicant-surface .application-history .application-list {
+  margin-top: 0;
+}
+
+.applicant-surface .dashboard-section .eyebrow {
+  color: var(--color-brand);
+}
+
+.applicant-surface .application-row {
+  padding-inline: 4px;
+}
+
+/* Compact registration panel */
+.applicant-surface .auth-page--register {
+  padding-block: 2%;
+}
+
+.applicant-surface .auth-page--register .auth-card {
+  width: 34%;
+}
+
+.applicant-surface .auth-page--register .auth-panel {
+  padding: 24px 7%;
+}
+
+.applicant-surface .auth-page--register .auth-panel h1 {
+  margin-bottom: 3px;
+  font-size: clamp(1.65rem, 2.2vw, 2rem);
+}
+
+.applicant-surface .auth-page--register .auth-panel > p {
+  margin-bottom: 13px;
+  font-size: 0.95rem;
+}
+
+.applicant-surface .auth-page--register .auth-panel form {
+  gap: 10px;
+}
+
+.applicant-surface .auth-page--register .form-field {
+  gap: 4px;
+}
+
+.applicant-surface .auth-page--register .form-field label {
+  font-size: 0.92rem;
+}
+
+.applicant-surface .auth-page--register .form-field input {
+  min-height: 44px;
+  padding: 9px 13px;
+}
+
+.applicant-surface .auth-page--register .primary-button {
+  min-height: 44px;
+  padding-block: 9px;
+}
+
+.applicant-surface .auth-page--register .auth-panel__switch {
+  margin-top: 12px !important;
+  margin-bottom: 0;
+  font-size: 0.94rem;
+}

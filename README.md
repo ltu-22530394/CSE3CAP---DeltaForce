@@ -1,136 +1,76 @@
-# GAP Applicant Portal
+# Greyhound Adoption Program Portal
 
-## Product Overview
+The GAP Portal supports the complete greyhound adoption and fostering journey for applicants and staff.
 
-GAP Applicant Portal is a responsive web application for people who want to foster or adopt a greyhound. Applicants can create an account, sign in, view their profile, complete an application, save unfinished work as a draft, submit the completed form, and view the latest application status.
+## Applicant experience
 
-The product is self-contained and runs entirely in the browser. Its asynchronous data services simulate authentication and application APIs while storing product data in browser `localStorage`.
+Applicants can:
 
-## Architecture
+- create an account and log in;
+- start an adoption or foster application;
+- complete personal, home environment and pet experience details;
+- save a draft and continue it later;
+- review and submit an application; and
+- view the current application status and staff feedback.
 
-### Technology stack
+Submitted applications are read-only. Previous applications remain available from the applicant dashboard.
 
-- React 19
-- TypeScript
-- React Router
-- Vite
-- Vitest
-- ESLint
+## Staff experience
 
-### Project structure
+Staff can:
 
-```text
-src/
-  app/                 Application routes and root layout
-  components/          Shared interface components
-  features/
-    auth/               Registration, login, session and simulated auth API
-    applicant/          Dashboard, form and simulated application API
-  pages/                General pages
-  routes/               Protected-route handling
-  styles/               Global responsive styles
-```
+- view application workload and review progress;
+- open recently submitted applications;
+- search, filter, sort and page through applications;
+- review applicant, contact, household and pet experience details;
+- move between applications without losing the current list filters;
+- approve or reject an application;
+- request additional information; and
+- review the full application activity history.
 
-The interface, validation and data-access layers are separated by feature. Page components call typed asynchronous service interfaces, while the simulated API implementations manage users, sessions and applications in `localStorage`. Protected routing prevents unauthenticated access to applicant pages.
+Applicant submissions appear in the staff application queue. Staff status changes and review notes appear in the applicant portal. Draft applications remain private to the applicant.
 
-## Getting Started
+## Access
 
-### Prerequisites
+Applicants register from the public Create Account page and then log in with their own credentials.
 
-- Node.js 24 or later
-- npm
+Staff use the shared Login page with the local staff account:
 
-### Install and start
+- Email: `jamie@gap.example`
+- Password: `Greyhound2026!`
+
+Each account is routed to the appropriate portal, and protected routes prevent access to the other role’s workspace.
+
+## Local data
+
+The portal currently uses asynchronous browser-based data services backed by `localStorage`. Account sessions, drafts, submitted applications, review decisions and activity history remain available in the same browser and origin.
+
+## Project structure
+
+- `src/App.tsx` — portal routes and role-based access.
+- `src/applicant/features/auth` — registration, login and applicant sessions.
+- `src/applicant/features/applicant` — applicant dashboard, application form, validation and application data service.
+- `src/api` — staff data service, application decisions and dashboard calculations.
+- `src/pages` — staff dashboard, application list, review and profile pages.
+- `src/components` — staff navigation, application rows, dialogs and feedback.
+- `src/styles/index.css` — staff portal styles.
+- `src/applicant/styles.css` — applicant and authentication styles.
+
+## Run locally
+
+Use Node.js 24 or later.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the local address displayed in the terminal, normally:
+Open the address shown in the terminal.
 
-```text
-http://localhost:5173
-```
-
-## Authentication API
-
-The project now includes a local Node.js/Express authentication API backed by
-SQLite. It supports applicant account registration, login, JWT authentication,
-logout, current-user lookup, role middleware and basic audit logging.
-
-### API setup
-
-Create a local environment file:
-
-```bash
-copy .env.example .env
-```
-
-Then set a long random value for `JWT_SECRET`.
-
-Initialise the SQLite database:
-
-```bash
-npm run api:init-db
-```
-
-Start the API:
-
-```bash
-npm run api
-```
-
-The API normally runs at:
-
-```text
-http://localhost:4000
-```
-
-### Auth endpoints
-
-```text
-GET  /api/health
-POST /api/auth/register
-POST /api/auth/login
-GET  /api/auth/me
-POST /api/auth/logout
-```
-
-Register request body:
-
-```json
-{
-  "fullName": "Taylor Applicant",
-  "email": "taylor@example.com",
-  "password": "safe-password"
-}
-```
-
-Login returns a JWT. Send it to protected routes using:
-
-```text
-Authorization: Bearer <token>
-```
-
-Protected-route middleware is available for future sprint work:
-
-```text
-requireAuth
-requireRole(...)
-requireApplicant
-requireStaff
-```
-
-### Optional commands
+## Validate and build
 
 ```bash
 npm run check
-npm run build
-npm run preview
-npm run api:test
 ```
 
-- `npm run check` runs linting, TypeScript checking, unit tests and a production build.
-- `npm run build` creates the production files in `dist/`.
-- `npm run preview` previews the production build locally.
+The production output is generated in `dist`. Static hosting must route application paths back to `index.html`.

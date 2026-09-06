@@ -1,0 +1,166 @@
+.page-heading {
+  margin-bottom: 2.5rem;
+}
+.page-heading h1 {
+  margin-bottom: 0.7rem;
+}
+.page-heading p {
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+.filters {
+  display: grid;
+  grid-template-columns: minmax(13rem, 1fr) repeat(3, auto);
+  gap: 1rem;
+  align-items: end;
+}
+.search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-field svg {
+  position: absolute;
+  left: 0.85rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  color: var(--muted);
+}
+.search-field input {
+  padding-left: 2.5rem;
+  width: 100%;
+}
+.select-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.select-field > span {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+input,
+select,
+textarea {
+  border: 1px solid #cfc3bb;
+  background: transparent;
+  border-radius: 0.35rem;
+  min-height: 2.9rem;
+  padding: 0.7rem 0.8rem;
+  color: var(--ink);
+}
+input::placeholder,
+textarea::placeholder {
+  color: #7a716b;
+}
+select {
+  padding-right: 1.5rem;
+}
+textarea {
+  resize: vertical;
+  width: 100%;
+  line-height: 1.6;
+}
+.list-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.8rem 0 1rem;
+  min-height: 1.6rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.application-list .application-row,
+.application-list-head {
+  grid-template-columns: minmax(12rem, 1.5fr) 0.7fr 0.9fr 1fr 1rem;
+}
+.application-list .application-row {
+  min-height: 5rem;
+}
+.application-list .application-type {
+  padding: 0;
+}
+.application-list-head {
+  display: grid;
+  gap: 1rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  padding: 0.75rem 0;
+  border-block: 1px solid var(--line);
+}
+.application-row .forward {
+  width: 1rem;
+  height: 1rem;
+}
+.forward {
+  transform: rotate(180deg);
+}
+.pagination {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.pagination > div {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+.pagination .button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.9rem;
+}
+.pagination .button svg {
+  width: 1rem;
+  height: 1rem;
+}
+.empty-state {
+  padding: 4rem 1rem;
+  text-align: center;
+}
+.empty-state p {
+  color: var(--muted);
+  margin: 0.8rem auto 1.5rem;
+  max-width: 35rem;
+}
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 5rem 1rem;
+  color: var(--muted);
+}
+.spinner {
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 2px solid var(--line);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.96rem;
+  color: var(--muted);
+}
+.back-link:hover {
+  color: var(--brand);
+}
+.back-link svg {
+  width: 1rem;
+  height: 1rem;
+}

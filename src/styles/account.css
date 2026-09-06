@@ -1,0 +1,107 @@
+.toast-region {
+  position: fixed;
+  top: 1.5rem;
+  left: var(--sidebar);
+  right: 0;
+  z-index: 100;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  padding: 0 1rem;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  max-width: 35rem;
+  background: #eee4dc;
+  color: var(--ink);
+  border: 1px solid #c9b8ab;
+  border-radius: 0.5rem;
+  padding: 0.7rem 1rem;
+  box-shadow: 0 5px 20px #34201515;
+  pointer-events: auto;
+  font-size: 0.95rem;
+}
+.toast > svg {
+  color: var(--brand);
+}
+.toast button {
+  padding: 0.2rem;
+  display: flex;
+  margin-left: 0.5rem;
+}
+.toast button svg {
+  width: 1rem;
+  height: 1rem;
+}
+.profile-page .page-heading {
+  margin-top: 2.5rem;
+}
+.profile-details {
+  display: flex;
+  gap: 2rem;
+  border-top: 1px solid var(--line);
+  padding-top: 2rem;
+  max-width: 45rem;
+}
+.profile-details dl {
+  margin: 0;
+  display: grid;
+  gap: 1.5rem;
+}
+.login-page {
+  min-height: 100dvh;
+  background: var(--canvas) url('/assets/greyhound-login-background.webp')
+    center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 3% 7%;
+  position: relative;
+}
+.login-brand {
+  position: absolute;
+  top: 3%;
+  left: 3%;
+}
+.login-brand .brand-lockup {
+  width: 13rem;
+  transform: scale(0.8);
+  transform-origin: top left;
+}
+.login-panel {
+  width: 34%;
+  min-width: 23rem;
+  padding: 2.1rem 2.3rem;
+  background: #f7f4f0f5;
+  border-radius: 0.55rem;
+  box-shadow: 0 10px 40px #21140d18;
+}
+.login-panel h1 {
+  font-size: 2.1rem;
+  margin-bottom: 0.65rem;
+}
+.login-panel > p {
+  color: var(--muted);
+}
+.login-panel form > .button {
+  width: 100%;
+  margin-top: 1.5rem;
+}
+.password-field {
+  position: relative;
+  display: flex;
+}
+.password-field input {
+  width: 100%;
+  padding-right: 4rem;
+}
+.password-field button {
+  position: absolute;
+  right: 0.75rem;
+  top: 0;
+  bottom: 0;
+  font-size: 0.86rem;
+  color: var(--brand);
+}

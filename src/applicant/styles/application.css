@@ -1,0 +1,480 @@
+
+.applicant-surface .dashboard-page,
+.applicant-surface .application-page {
+  width: min(1180px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 42px 0 64px;
+}
+
+.applicant-surface .dashboard-heading,
+.applicant-surface .application-heading,
+.applicant-surface .section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.applicant-surface .dashboard-heading h1,
+.applicant-surface .application-heading h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.applicant-surface .dashboard-heading p:last-child,
+.applicant-surface .application-heading p:last-child {
+  margin-bottom: 0;
+}
+
+.applicant-surface .dashboard-cards {
+  margin-top: 36px;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--color-surface);
+}
+
+.applicant-surface .application-panel {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-subtle);
+}
+
+.applicant-surface .dashboard-card {
+  min-height: 218px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.applicant-surface .dashboard-card + .dashboard-card {
+  border-left: 1px solid var(--color-border);
+}
+
+.applicant-surface .dashboard-card__label {
+  margin: 0 0 18px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-brand);
+}
+
+.applicant-surface .dashboard-card h2 {
+  margin: 0 0 8px;
+  font-size: 1.55rem;
+}
+
+.applicant-surface .dashboard-card a {
+  margin-top: auto;
+  font-weight: 700;
+  color: var(--color-brand);
+}
+
+.applicant-surface .dashboard-section {
+  margin-top: 34px;
+  border-top: 1px solid var(--color-border);
+  padding: 30px 0 0;
+  scroll-margin-top: 24px;
+}
+
+.applicant-surface .dashboard-section h2 {
+  margin: 0;
+}
+
+.applicant-surface .empty-state {
+  margin-top: 22px;
+  border-left: 3px solid var(--color-brand-soft);
+  padding: 24px 0 24px 24px;
+}
+
+.applicant-surface .empty-state h3 {
+  margin-top: 0;
+}
+
+.applicant-surface .application-list {
+  margin-top: 22px;
+  border-top: 1px solid var(--color-border);
+}
+
+.applicant-surface .application-row {
+  min-height: 78px;
+  border-bottom: 1px solid var(--color-border);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 60px;
+  align-items: center;
+  gap: 20px;
+}
+
+.applicant-surface .application-row strong,
+.applicant-surface .application-row small {
+  display: block;
+}
+
+.applicant-surface .application-row a {
+  color: var(--color-brand);
+  font-weight: 700;
+}
+
+.applicant-surface .application-row small {
+  margin-top: 6px;
+}
+
+.applicant-surface .status-badge {
+  border: 1px solid var(--color-brand);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-brand-dark);
+  background: var(--color-brand-soft);
+}
+
+.applicant-surface .profile-summary dl,
+.applicant-surface .review-list {
+  margin: 22px 0 0;
+}
+
+.applicant-surface .profile-summary dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.applicant-surface .profile-summary dl div,
+.applicant-surface .review-list div {
+  border-top: 1px solid var(--color-border);
+  padding-top: 14px;
+}
+
+.applicant-surface .profile-summary dt,
+.applicant-surface .review-list dt {
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.applicant-surface .profile-summary dd,
+.applicant-surface .review-list dd {
+  margin: 6px 0 0;
+}
+
+.applicant-surface .application-heading {
+  align-items: center;
+}
+
+.applicant-surface .application-stepper {
+  margin: 34px 0 28px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+}
+
+.applicant-surface .application-stepper li {
+  position: relative;
+  border-top: 2px solid var(--color-border);
+  padding-top: 14px;
+}
+
+.applicant-surface .application-stepper li.is-current,
+.applicant-surface .application-stepper li.is-complete {
+  border-color: var(--color-brand);
+}
+
+.applicant-surface .application-stepper button {
+  width: 100%;
+  border: 0;
+  padding: 0 8px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--color-muted);
+  background: transparent;
+  font-weight: 650;
+  text-align: left;
+}
+
+.applicant-surface .application-stepper button:disabled {
+  opacity: 1;
+}
+
+.applicant-surface .application-stepper li.is-current button,
+.applicant-surface .application-stepper li.is-complete button {
+  color: var(--color-brand-dark);
+}
+
+.applicant-surface .application-stepper button span {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.applicant-surface .application-stepper li.is-current button span,
+.applicant-surface .application-stepper li.is-complete button span {
+  background: var(--color-brand);
+  color: var(--color-white);
+}
+
+.applicant-surface .application-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  align-items: start;
+  gap: 24px;
+}
+
+.applicant-surface .application-panel {
+  padding: clamp(24px, 4vw, 40px);
+}
+
+.applicant-surface .application-panel__heading {
+  margin-bottom: 30px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 22px;
+}
+
+.applicant-surface .application-panel__heading p,
+.applicant-surface .application-panel__heading h2 {
+  margin: 0;
+}
+
+.applicant-surface .application-panel__heading p {
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.applicant-surface .application-panel__heading h2,
+.applicant-surface .application-help h2 {
+  font-size: 1.45rem;
+}
+
+.applicant-surface .application-fields {
+  display: grid;
+  gap: 24px;
+}
+
+.applicant-surface .application-fields--two-column {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.applicant-surface .form-field--wide {
+  grid-column: 1 / -1;
+}
+
+.applicant-surface .form-field select,
+.applicant-surface .form-field textarea {
+  width: 100%;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 6px;
+  padding: 13px 16px;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.applicant-surface .form-field select {
+  min-height: 54px;
+}
+
+.applicant-surface .form-field textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.applicant-surface .form-field select[aria-invalid='true'],
+.applicant-surface .form-field textarea[aria-invalid='true'] {
+  border-width: 2px;
+  border-color: var(--color-brand);
+}
+
+.applicant-surface .radio-field {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.applicant-surface .radio-field legend {
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.applicant-surface .radio-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 26px;
+}
+
+.applicant-surface .radio-options label {
+  min-height: 34px;
+  padding: 3px 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.applicant-surface .radio-options label:has(input:checked) {
+  color: var(--color-brand-dark);
+  font-weight: 650;
+}
+
+.applicant-surface .radio-options input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.applicant-surface .application-help {
+  position: sticky;
+  top: 100px;
+  padding: 6px 0 6px 28px;
+  border-left: 1px solid var(--color-border);
+}
+
+.applicant-surface .application-help h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.applicant-surface .application-help ul {
+  margin: 18px 0 0;
+  padding-left: 19px;
+  color: var(--color-muted);
+}
+
+.applicant-surface .application-help li {
+  padding-left: 3px;
+  line-height: 1.55;
+}
+
+.applicant-surface .application-help li + li {
+  margin-top: 11px;
+}
+
+.applicant-surface .application-panel > .alert {
+  margin-bottom: 20px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: var(--color-brand-dark);
+  background: transparent;
+  font-weight: 650;
+}
+
+.applicant-surface .application-actions {
+  margin-top: 38px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.applicant-surface .application-actions__spacer {
+  flex: 1;
+}
+
+.applicant-surface .review-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 32px;
+  margin: 14px 0 0;
+}
+
+.applicant-surface .review-step > p {
+  margin: 0;
+}
+
+.applicant-surface .review-section {
+  margin-top: 28px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 22px;
+}
+
+.applicant-surface .review-section h3 {
+  margin: 0;
+  font-size: 1.08rem;
+  text-transform: capitalize;
+}
+
+.applicant-surface .review-step .review-list div {
+  min-width: 0;
+  border-top: 0;
+  padding-top: 0;
+}
+
+.applicant-surface .review-list dd {
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.applicant-surface .review-item--wide {
+  grid-column: 1 / -1;
+}
+
+.applicant-surface .confirmation-field {
+  margin-top: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.applicant-surface .confirmation-field input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+
+.applicant-surface .confirmation-field + .field-error {
+  margin: 7px 0 0 32px;
+  font-size: 0.84rem;
+}
+
+.applicant-surface .application-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-brand-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.applicant-surface .application-back-link span {
+  font-size: 1.15em;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.applicant-surface .application-back-link:hover span,
+.applicant-surface .application-back-link:focus-visible span {
+  transform: translateX(-3px);
+}
+
+.applicant-surface input[type='checkbox'],
+.applicant-surface input[type='radio'] {
+  accent-color: var(--color-brand);
+}
+
+.applicant-surface button:focus-visible,
+.applicant-surface a:focus-visible,
+.applicant-surface input:focus-visible,
+.applicant-surface select:focus-visible,
+.applicant-surface textarea:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 3px;
+}
