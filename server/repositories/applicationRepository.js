@@ -15,7 +15,7 @@ const booleans = new Set(['landlordApproval', 'transportAvailable', 'termsAccept
 
 function map(row) {
   if (!row) return null
-  const result = { id: row.id, status: row.application_status, currentStep: row.current_step, submittedAt: row.submitted_at, createdAt: row.created_at, updatedAt: row.updated_at }
+  const result = { id: row.id, applicationType: row.application_type, status: row.application_status, currentStep: row.current_step, submittedAt: row.submitted_at, createdAt: row.created_at, updatedAt: row.updated_at }
   for (const [key, column] of Object.entries(columns)) result[key] = booleans.has(key) ? Boolean(row[column]) : row[column]
   return result
 }
@@ -37,7 +37,7 @@ export function getApplication(id, applicantId) {
 export function createApplication(applicantId, input) {
   const id = randomUUID()
   withTransaction((db) => {
-    db.prepare('INSERT INTO foster_applications (id, applicant_id, current_step) VALUES (?, ?, ?)').run(id, applicantId, input.currentStep || 1)
+    db.prepare('INSERT INTO foster_applications (id, applicant_id, current_step, application_type) VALUES (?, ?, ?, ?)').run(id, applicantId, input.currentStep || 1, input.applicationType || 'foster')
     db.prepare('INSERT INTO foster_application_details (application_id) VALUES (?)').run(id)
     updateFields(db, id, applicantId, input)
   })
@@ -49,6 +49,7 @@ function updateFields(db, id, applicantId, input) {
   if (!current) throw new ApiError(404, 'APPLICATION_NOT_FOUND', 'Application could not be found.')
   if (current.application_status !== 'draft') throw new ApiError(409, 'APPLICATION_LOCKED', 'Only draft applications can be changed.')
   if (input.currentStep !== undefined) db.prepare(`UPDATE foster_applications SET current_step = ?, updated_at = datetime('now') WHERE id = ?`).run(input.currentStep, id)
+  if (input.applicationType !== undefined) db.prepare(`UPDATE foster_applications SET application_type = ?, updated_at = datetime('now') WHERE id = ?`).run(input.applicationType, id)
   const entries = Object.entries(input).filter(([key]) => columns[key])
   if (entries.length) {
     const assignments = entries.map(([key]) => `${columns[key]} = ?`).join(', ')

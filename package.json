@@ -10,9 +10,18 @@
     "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run build"
+    "test:server": "node --test server/tests/*.node-test.js",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run test:server && npm run build",
+    "start:api": "node server/server.js",
+    "init:db": "node server/scripts/init-db.js",
+    "seed:staff": "node server/scripts/seed-staff.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-router-dom": "7.18.2"

@@ -7,6 +7,7 @@ const allowedFields = [
   'availability', 'transportAvailable', 'preferredGreyhoundCharacteristics',
   'reasonForApplying', 'emergencyContactName', 'emergencyContactPhone',
   'termsAccepted', 'privacyConsent', 'currentStep',
+  'applicationType',
 ]
 
 export function validateApplicationInput(body = {}) {
@@ -19,6 +20,9 @@ export function validateApplicationInput(body = {}) {
   }
   if (clean.currentStep !== undefined && (!Number.isInteger(clean.currentStep) || clean.currentStep < 1 || clean.currentStep > 5)) {
     throw new ApiError(400, 'INVALID_CURRENT_STEP', 'Current step must be between 1 and 5.')
+  }
+  if (clean.applicationType !== undefined && !['adoption', 'foster'].includes(clean.applicationType)) {
+    throw new ApiError(400, 'INVALID_APPLICATION_TYPE', 'Application type must be adoption or foster.')
   }
   return clean
 }

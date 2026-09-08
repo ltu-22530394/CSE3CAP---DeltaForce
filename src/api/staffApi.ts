@@ -299,8 +299,85 @@ export function createStaffApi(
     },
   }
 }
-export const staffApi = createStaffApi({
+const HTTP_SESSION_KEY = 'gap.staff.http-session.v1'
+
+export function createHttpStaffApi(baseUrl: string, storage: DataStore) {
+  const root = baseUrl.replace(/\/$/, '')
+  function readSession(): { token: string; user: StaffUser } | null {
+    try {
+      const value = storage.getItem(HTTP_SESSION_KEY)
+      return value ? JSON.parse(value) : null
+    } catch {
+      return null
+    }
+  }
+  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const current = readSession()
+    const response = await fetch(`${root}${path}`, {
+      ...init,
+      headers: {
+        ...(init.body ? { 'content-type': 'application/json' } : {}),
+        ...(current ? { authorization: `Bearer ${current.token}` } : {}),
+        ...init.headers,
+      },
+    })
+    const body = response.status === 204 ? null : await response.json()
+    if (!response.ok) {
+      const code = body?.error?.code || 'REQUEST_FAILED'
+      throw new ApiError(
+        body?.error?.message || 'The server could not complete this request.',
+        response.status === 401 ? 'UNAUTHENTICATED' : code,
+      )
+    }
+    return body as T
+  }
+  const list = async (filters: Filters = {}) => {
+    const query = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => value && query.set(key, value))
+    const body = await request<{ applications: Application[] }>(`/api/staff/applications?${query}`)
+    return body.applications
+  }
+  return {
+    session: () => readSession()?.user || null,
+    async login(email: string, password: string) {
+      const body = await request<{ token: string; user: { id: string; fullName: string; role: string; email: string } }>('/api/auth/login', {
+        method: 'POST', body: JSON.stringify({ email, password }),
+      })
+      if (!['staff', 'admin'].includes(body.user.role)) throw new ApiError('Staff access is required.', 'FORBIDDEN')
+      const user = { id: body.user.id, name: body.user.fullName, role: body.user.role, email: body.user.email }
+      storage.setItem(HTTP_SESSION_KEY, JSON.stringify({ token: body.token, user }))
+      return user
+    },
+    logout() { storage.setItem(HTTP_SESSION_KEY, '') },
+    list,
+    async get(id: string) {
+      const body = await request<{ application: Application }>(`/api/staff/applications/${encodeURIComponent(id)}`)
+      return body.application
+    },
+    async dashboard() {
+      const items = await list()
+      const now = new Date()
+      const ordered = [...items].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
+      return {
+        ...dashboardSummary(items, now), recent: ordered.slice(0, 5),
+        next: [...items].sort((a, b) => a.submittedAt.localeCompare(b.submittedAt)).find((a) => a.status === 'pending' || a.status === 'in_review')?.id,
+        now,
+      }
+    },
+    async decide(id: string, decision: Decision, note: string, revision: number) {
+      const body = await request<{ application: Application }>(`/api/staff/applications/${encodeURIComponent(id)}/decision`, {
+        method: 'PATCH', body: JSON.stringify({ decision, note, revision }),
+      })
+      return body.application
+    },
+  }
+}
+
+const browserStorage: DataStore = {
   getItem: (key) => window.localStorage.getItem(key),
   setItem: (key, value) => window.localStorage.setItem(key, value),
-})
+}
+export const staffApi = import.meta.env.VITE_API_URL
+  ? createHttpStaffApi(import.meta.env.VITE_API_URL, browserStorage)
+  : createStaffApi(browserStorage)
 export type DashboardData = Awaited<ReturnType<typeof staffApi.dashboard>>
