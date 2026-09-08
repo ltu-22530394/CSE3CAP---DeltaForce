@@ -7,6 +7,7 @@ import { authRouter } from './routes/authRoutes.js'
 import { protectedRouter } from './routes/protectedRoutes.js'
 import { applicationRouter } from './routes/applicationRoutes.js'
 import { staffRouter } from './routes/staffRoutes.js'
+import { staffApplicationRouter } from './routes/staffApplicationRoutes.js'
 import { ApiError } from './utils/apiError.js'
 
 export function createApp() {
@@ -28,6 +29,7 @@ export function createApp() {
 
   app.use('/api/auth', authRouter)
   app.use('/api/applications', applicationRouter)
+  app.use('/api/staff/applications', staffApplicationRouter)
   app.use('/api/staff', staffRouter)
   app.use('/api/protected', protectedRouter)
 

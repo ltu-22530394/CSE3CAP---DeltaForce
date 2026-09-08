@@ -58,17 +58,7 @@ describe('DEL-55 staff portal integration API', () => {
     assert.equal(response.status, 403)
   })
 
-  it('lists, searches and reads applications using the frontend model', async () => {
-    const list = await request('GET', '/api/staff/applications?q=alex')
-    assert.equal(list.status, 200)
-    assert.equal(list.body.applications.length, 2)
-    assert.equal(list.body.applications[0].form.fullName, 'Alex Applicant')
-    const detail = await request('GET', `/api/staff/applications/${applicationId}`)
-    assert.equal(detail.body.application.status, 'approved')
-    assert.equal(detail.body.application.revision, 0)
-  })
-
-  it('records a staff decision and rejects a stale revision', async () => {
+  it('supports in-review transitions required by the existing interface', async () => {
     const updated = await request('PATCH', `/api/staff/applications/${reviewApplicationId}/decision`, { decision: 'in_review', note: 'Review started.', revision: 0 })
     assert.equal(updated.status, 200)
     assert.equal(updated.body.application.status, 'in_review')

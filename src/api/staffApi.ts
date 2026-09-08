@@ -1,5 +1,5 @@
 import type { StoredApplication } from '../applicant/features/applicant/applicationModel'
-import { dashboardSummary, isClosed } from './model'
+import { dashboardSummary, isClosed, statusLabels } from './model'
 import type { Application, Decision, Filters, StaffUser, Status } from './model'
 import { seedApplications, staffUser, samplePassword } from './seed'
 
@@ -331,11 +331,63 @@ export function createHttpStaffApi(baseUrl: string, storage: DataStore) {
     }
     return body as T
   }
+  type IntegratedApplication = {
+    id: string
+    applicantName: string
+    email: string
+    phone?: string
+    location?: { addressLine1?: string; addressLine2?: string; suburb?: string; state?: string; postcode?: string }
+    status: string
+    applicationType?: string
+    submittedAt?: string
+    updatedAt?: string
+    decisionAt?: string
+    rejectionReason?: string
+    staffNotes?: string
+    details?: Record<string, unknown>
+  }
+  const statusMap: Record<string, Status> = {
+    submitted: 'pending', under_review: 'in_review', information_required: 'more_information',
+    approved: 'approved', rejected: 'rejected',
+  }
+  function mapApplication(value: IntegratedApplication): Application {
+    const details = value.details || {}
+    const status = statusMap[value.status] || 'pending'
+    const at = value.submittedAt || value.updatedAt || new Date().toISOString()
+    const finalNote = value.rejectionReason || value.staffNotes
+    return {
+      id: value.id,
+      status,
+      form: {
+        fullName: value.applicantName, dateOfBirth: '', email: value.email, phone: value.phone || '',
+        address: [value.location?.addressLine1, value.location?.addressLine2, value.location?.suburb, value.location?.state, value.location?.postcode].filter(Boolean).join(', '),
+        residenceType: String(details.householdType || ''), housingStatus: String(details.housingStatus || ''),
+        landlordPermission: details.landlordApproval ? 'Yes' : 'No', adultsInHome: String(details.adultsInHome ?? ''),
+        childrenInHome: String(details.childrenInHome ?? ''), secureYard: String(details.yardOrOutdoorArea || ''),
+        applicationType: value.applicationType === 'adoption' ? 'Adoption' : 'Foster',
+        dogExperience: String(details.previousDogExperience || ''), greyhoundExperience: String(details.previousGreyhoundExperience || ''),
+        hasCurrentPets: details.existingPets ? 'Yes' : 'No', currentPetsDetails: String(details.existingPets || ''),
+        confirmAccurate: Boolean(details.termsAccepted && details.privacyConsent),
+      },
+      submittedAt: at, updatedAt: value.updatedAt || value.decisionAt || at, revision: 0,
+      history: [
+        { id: `${value.id}-submitted`, at, status: 'pending', author: value.applicantName, note: 'Application submitted.' },
+        ...(status !== 'pending' ? [{ id: `${value.id}-${status}`, at: value.decisionAt || value.updatedAt || at, status, author: 'GAP staff', note: finalNote || `Application ${statusLabels[status].toLowerCase()}.` }] : []),
+      ],
+    }
+  }
   const list = async (filters: Filters = {}) => {
     const query = new URLSearchParams()
-    Object.entries(filters).forEach(([key, value]) => value && query.set(key, value))
-    const body = await request<{ applications: Application[] }>(`/api/staff/applications?${query}`)
-    return body.applications
+    if (filters.q) query.set('search', filters.q)
+    if (filters.sort) query.set('sort', filters.sort)
+    if (filters.status && filters.status !== 'in_progress') {
+      query.set('status', ({ pending: 'submitted', in_review: 'under_review', more_information: 'information_required' } as Record<string, string>)[filters.status] || filters.status)
+    }
+    query.set('limit', '100')
+    const body = await request<{ applications: IntegratedApplication[] }>(`/api/staff/applications?${query}`)
+    return body.applications.map(mapApplication).filter((application) =>
+      (!filters.type || application.form.applicationType === filters.type) &&
+      (filters.status !== 'in_progress' || ['in_review', 'more_information'].includes(application.status)))
   }
   return {
     session: () => readSession()?.user || null,
@@ -351,8 +403,8 @@ export function createHttpStaffApi(baseUrl: string, storage: DataStore) {
     logout() { storage.setItem(HTTP_SESSION_KEY, '') },
     list,
     async get(id: string) {
-      const body = await request<{ application: Application }>(`/api/staff/applications/${encodeURIComponent(id)}`)
-      return body.application
+      const body = await request<{ application: IntegratedApplication }>(`/api/staff/applications/${encodeURIComponent(id)}`)
+      return mapApplication(body.application)
     },
     async dashboard() {
       const items = await list()
@@ -365,10 +417,11 @@ export function createHttpStaffApi(baseUrl: string, storage: DataStore) {
       }
     },
     async decide(id: string, decision: Decision, note: string, revision: number) {
-      const body = await request<{ application: Application }>(`/api/staff/applications/${encodeURIComponent(id)}/decision`, {
-        method: 'PATCH', body: JSON.stringify({ decision, note, revision }),
+      const path = decision === 'approved' ? 'approve' : decision === 'rejected' ? 'reject' : 'decision'
+      const body = await request<{ application: IntegratedApplication | Application }>(`/api/staff/applications/${encodeURIComponent(id)}/${path}`, {
+        method: path === 'decision' ? 'PATCH' : 'POST', body: JSON.stringify({ decision, note, revision }),
       })
-      return body.application
+      return 'form' in body.application ? body.application : mapApplication(body.application)
     },
   }
 }
