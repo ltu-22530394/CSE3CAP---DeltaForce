@@ -195,7 +195,7 @@ function PortalRoutes() {
 
 export function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AuthProvider>
         <PortalRoutes />
       </AuthProvider>

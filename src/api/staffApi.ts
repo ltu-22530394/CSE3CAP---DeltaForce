@@ -1,5 +1,5 @@
 import type { StoredApplication } from '../applicant/features/applicant/applicationModel'
-import { dashboardSummary, isClosed } from './model'
+import { dashboardSummary, isClosed, statusLabels } from './model'
 import type { Application, Decision, Filters, StaffUser, Status } from './model'
 import { seedApplications, staffUser, samplePassword } from './seed'
 
@@ -299,8 +299,138 @@ export function createStaffApi(
     },
   }
 }
-export const staffApi = createStaffApi({
+const HTTP_SESSION_KEY = 'gap.staff.http-session.v1'
+
+export function createHttpStaffApi(baseUrl: string, storage: DataStore) {
+  const root = baseUrl.replace(/\/$/, '')
+  function readSession(): { token: string; user: StaffUser } | null {
+    try {
+      const value = storage.getItem(HTTP_SESSION_KEY)
+      return value ? JSON.parse(value) : null
+    } catch {
+      return null
+    }
+  }
+  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const current = readSession()
+    const response = await fetch(`${root}${path}`, {
+      ...init,
+      headers: {
+        ...(init.body ? { 'content-type': 'application/json' } : {}),
+        ...(current ? { authorization: `Bearer ${current.token}` } : {}),
+        ...init.headers,
+      },
+    })
+    const body = response.status === 204 ? null : await response.json()
+    if (!response.ok) {
+      const code = body?.error?.code || 'REQUEST_FAILED'
+      throw new ApiError(
+        body?.error?.message || 'The server could not complete this request.',
+        response.status === 401 ? 'UNAUTHENTICATED' : code,
+      )
+    }
+    return body as T
+  }
+  type IntegratedApplication = {
+    id: string
+    applicantName: string
+    email: string
+    phone?: string
+    location?: { addressLine1?: string; addressLine2?: string; suburb?: string; state?: string; postcode?: string }
+    status: string
+    applicationType?: string
+    submittedAt?: string
+    updatedAt?: string
+    decisionAt?: string
+    rejectionReason?: string
+    staffNotes?: string
+    details?: Record<string, unknown>
+  }
+  const statusMap: Record<string, Status> = {
+    submitted: 'pending', under_review: 'in_review', information_required: 'more_information',
+    approved: 'approved', rejected: 'rejected',
+  }
+  function mapApplication(value: IntegratedApplication): Application {
+    const details = value.details || {}
+    const status = statusMap[value.status] || 'pending'
+    const at = value.submittedAt || value.updatedAt || new Date().toISOString()
+    const finalNote = value.rejectionReason || value.staffNotes
+    return {
+      id: value.id,
+      status,
+      form: {
+        fullName: value.applicantName, dateOfBirth: '', email: value.email, phone: value.phone || '',
+        address: [value.location?.addressLine1, value.location?.addressLine2, value.location?.suburb, value.location?.state, value.location?.postcode].filter(Boolean).join(', '),
+        residenceType: String(details.householdType || ''), housingStatus: String(details.housingStatus || ''),
+        landlordPermission: details.landlordApproval ? 'Yes' : 'No', adultsInHome: String(details.adultsInHome ?? ''),
+        childrenInHome: String(details.childrenInHome ?? ''), secureYard: String(details.yardOrOutdoorArea || ''),
+        applicationType: value.applicationType === 'adoption' ? 'Adoption' : 'Foster',
+        dogExperience: String(details.previousDogExperience || ''), greyhoundExperience: String(details.previousGreyhoundExperience || ''),
+        hasCurrentPets: details.existingPets ? 'Yes' : 'No', currentPetsDetails: String(details.existingPets || ''),
+        confirmAccurate: Boolean(details.termsAccepted && details.privacyConsent),
+      },
+      submittedAt: at, updatedAt: value.updatedAt || value.decisionAt || at, revision: 0,
+      history: [
+        { id: `${value.id}-submitted`, at, status: 'pending', author: value.applicantName, note: 'Application submitted.' },
+        ...(status !== 'pending' ? [{ id: `${value.id}-${status}`, at: value.decisionAt || value.updatedAt || at, status, author: 'GAP staff', note: finalNote || `Application ${statusLabels[status].toLowerCase()}.` }] : []),
+      ],
+    }
+  }
+  const list = async (filters: Filters = {}) => {
+    const query = new URLSearchParams()
+    if (filters.q) query.set('search', filters.q)
+    if (filters.sort) query.set('sort', filters.sort)
+    if (filters.status && filters.status !== 'in_progress') {
+      query.set('status', ({ pending: 'submitted', in_review: 'under_review', more_information: 'information_required' } as Record<string, string>)[filters.status] || filters.status)
+    }
+    query.set('limit', '100')
+    const body = await request<{ applications: IntegratedApplication[] }>(`/api/staff/applications?${query}`)
+    return body.applications.map(mapApplication).filter((application) =>
+      (!filters.type || application.form.applicationType === filters.type) &&
+      (filters.status !== 'in_progress' || ['in_review', 'more_information'].includes(application.status)))
+  }
+  return {
+    session: () => readSession()?.user || null,
+    async login(email: string, password: string) {
+      const body = await request<{ token: string; user: { id: string; fullName: string; role: string; email: string } }>('/api/auth/login', {
+        method: 'POST', body: JSON.stringify({ email, password }),
+      })
+      if (!['staff', 'admin'].includes(body.user.role)) throw new ApiError('Staff access is required.', 'FORBIDDEN')
+      const user = { id: body.user.id, name: body.user.fullName, role: body.user.role, email: body.user.email }
+      storage.setItem(HTTP_SESSION_KEY, JSON.stringify({ token: body.token, user }))
+      return user
+    },
+    logout() { storage.setItem(HTTP_SESSION_KEY, '') },
+    list,
+    async get(id: string) {
+      const body = await request<{ application: IntegratedApplication }>(`/api/staff/applications/${encodeURIComponent(id)}`)
+      return mapApplication(body.application)
+    },
+    async dashboard() {
+      const items = await list()
+      const now = new Date()
+      const ordered = [...items].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
+      return {
+        ...dashboardSummary(items, now), recent: ordered.slice(0, 5),
+        next: [...items].sort((a, b) => a.submittedAt.localeCompare(b.submittedAt)).find((a) => a.status === 'pending' || a.status === 'in_review')?.id,
+        now,
+      }
+    },
+    async decide(id: string, decision: Decision, note: string, revision: number) {
+      const path = decision === 'approved' ? 'approve' : decision === 'rejected' ? 'reject' : 'decision'
+      const body = await request<{ application: IntegratedApplication | Application }>(`/api/staff/applications/${encodeURIComponent(id)}/${path}`, {
+        method: path === 'decision' ? 'PATCH' : 'POST', body: JSON.stringify({ decision, note, revision }),
+      })
+      return 'form' in body.application ? body.application : mapApplication(body.application)
+    },
+  }
+}
+
+const browserStorage: DataStore = {
   getItem: (key) => window.localStorage.getItem(key),
   setItem: (key, value) => window.localStorage.setItem(key, value),
-})
+}
+export const staffApi = import.meta.env.VITE_API_URL
+  ? createHttpStaffApi(import.meta.env.VITE_API_URL, browserStorage)
+  : createStaffApi(browserStorage)
 export type DashboardData = Awaited<ReturnType<typeof staffApi.dashboard>>

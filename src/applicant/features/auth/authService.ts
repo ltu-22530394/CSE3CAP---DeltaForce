@@ -1,4 +1,5 @@
 import { staffUser } from '../../../api/seed'
+import bcrypt from 'bcryptjs'
 import type {
   ApplicantUser,
   AuthSession,
@@ -32,19 +33,12 @@ function readMockUsers(): MockUser[] {
   }
 }
 
-async function hashPassword(password: string): Promise<string> {
-  const data = new TextEncoder().encode(password)
-  const digest = await window.crypto.subtle.digest('SHA-256', data)
-  return Array.from(new Uint8Array(digest), (byte) =>
-    byte.toString(16).padStart(2, '0'),
-  ).join('')
-}
-
 function applicantId(): string {
   return window.crypto.randomUUID?.() ?? `applicant-${Date.now()}`
 }
 
-export const authService: AuthService = {
+export function createMockAuthService(): AuthService {
+  return {
   async register({ fullName, email, password }: RegistrationDetails) {
     const users = readMockUsers()
     const normalizedEmail = email.trim().toLowerCase()
@@ -63,7 +57,7 @@ export const authService: AuthService = {
       id: applicantId(),
       fullName: fullName.trim(),
       email: normalizedEmail,
-      passwordHash: await hashPassword(password),
+      passwordHash: await bcrypt.hash(password, 10),
     }
     window.localStorage.setItem(
       MOCK_USERS_KEY,
@@ -75,14 +69,10 @@ export const authService: AuthService = {
 
   async login({ email, password }: LoginCredentials) {
     const normalizedEmail = email.trim().toLowerCase()
-    const passwordHash = await hashPassword(password)
-    const user = readMockUsers().find(
-      (candidate) =>
-        candidate.email === normalizedEmail &&
-        candidate.passwordHash === passwordHash,
-    )
+    const users = readMockUsers()
+    const user = users.find((candidate) => candidate.email === normalizedEmail)
 
-    if (!user) {
+    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       throw serviceError(
         'Email or password is incorrect.',
         'INVALID_CREDENTIALS',
@@ -94,4 +84,41 @@ export const authService: AuthService = {
       user: { id: user.id, fullName: user.fullName, email: user.email },
     }
   },
+  }
 }
+
+type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+
+export function createApiAuthService(baseUrl: string, fetcher: Fetcher = fetch): AuthService {
+  const root = baseUrl.replace(/\/$/, '')
+  async function request<T>(path: string, body: unknown): Promise<T> {
+    let response: Response
+    try {
+      response = await fetcher(`${root}${path}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    } catch {
+      throw serviceError('The authentication service is unavailable. Please try again.', 'SERVICE_UNAVAILABLE')
+    }
+    const data = await response.json().catch(() => null)
+    if (!response.ok) {
+      throw serviceError(data?.error?.message || 'Authentication failed. Please try again.', data?.error?.code || 'REQUEST_FAILED')
+    }
+    return data as T
+  }
+  return {
+    async register(details) {
+      const result = await request<{ user: ApplicantUser }>('/api/auth/register', details)
+      return result.user
+    },
+    async login(credentials) {
+      return request<AuthSession>('/api/auth/login', credentials)
+    },
+  }
+}
+
+export const authService: AuthService = import.meta.env.VITE_API_URL
+  ? createApiAuthService(import.meta.env.VITE_API_URL)
+  : createMockAuthService()

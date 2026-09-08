@@ -43,7 +43,7 @@ Each account is routed to the appropriate portal, and protected routes prevent a
 
 ## Local data
 
-The portal currently uses asynchronous browser-based data services backed by `localStorage`. Account sessions, drafts, submitted applications, review decisions and activity history remain available in the same browser and origin.
+By default, the portal uses asynchronous browser-based data services backed by `localStorage`. Account sessions, drafts, submitted applications, review decisions and activity history remain available in the same browser and origin. Set `VITE_API_URL` to use the authenticated Express/SQLite staff integration instead.
 
 ## Project structure
 
@@ -66,6 +66,21 @@ npm run dev
 ```
 
 Open the address shown in the terminal.
+
+### Run with the integrated API (DEL-54 and DEL-55)
+
+Copy `.env.example` to `.env`, set a strong `JWT_SECRET` and `STAFF_PASSWORD`, then run:
+
+```bash
+npm install
+npm run init:db
+npm run seed:staff
+npm run start:api
+```
+
+In a second terminal, run `npm run dev`. When `VITE_API_URL` is set, the existing staff screens use the authenticated Express/SQLite API. Without it, the original local-storage demo remains available.
+
+Staff endpoints are available under `/api/staff`: application list/detail/decision, available greyhounds, and greyhound allocations. Staff and admin roles are required.
 
 ## Validate and build
 
