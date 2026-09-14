@@ -18,6 +18,23 @@ export interface StaffUser {
   role: string
   email: string
 }
+export type GreyhoundStatus = 'available' | 'medical_hold' | 'assigned'
+export type GreyhoundSex = 'Female' | 'Male'
+export interface Greyhound {
+  id: string
+  name: string
+  age: number
+  sex: GreyhoundSex
+  status: GreyhoundStatus
+}
+export interface GreyhoundAssignment {
+  greyhoundId: string
+  name: string
+  age: number
+  sex: GreyhoundSex
+  assignedAt: string
+  assignedBy: string
+}
 export interface ApplicationForm {
   fullName: string
   dateOfBirth: string
@@ -43,6 +60,7 @@ export interface Activity {
   status: Status
   author: string
   note: string
+  label?: string
 }
 export interface Application {
   id: string
@@ -52,6 +70,7 @@ export interface Application {
   updatedAt: string
   revision: number
   history: Activity[]
+  assignment?: GreyhoundAssignment
 }
 export interface Filters {
   q?: string

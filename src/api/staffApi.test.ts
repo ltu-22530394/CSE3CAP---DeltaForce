@@ -86,6 +86,59 @@ describe('staff application workflow', () => {
     const d = await reloaded.dashboard()
     expect([d.pending, d.approved, d.completed]).toEqual([11, 27, 6])
   })
+  it('assigns an available greyhound to an approved application and records the activity', async () => {
+    const { api, storage } = setup()
+    const application = (await api.list({ status: 'approved' }))[0]
+    const greyhound = (await api.listGreyhounds()).find(
+      (candidate) => candidate.status === 'available',
+    )!
+    const updated = await api.assignGreyhound(
+      application.id,
+      greyhound.id,
+      application.revision,
+    )
+    expect(updated.assignment).toMatchObject({
+      greyhoundId: greyhound.id,
+      name: greyhound.name,
+      assignedBy: staffUser.name,
+    })
+    expect(updated.history.at(-1)).toMatchObject({
+      label: 'Greyhound assigned',
+      status: 'approved',
+    })
+    const reloaded = createStaffApi(storage, 0, () => now)
+    expect((await reloaded.get(application.id)).assignment?.name).toBe(
+      greyhound.name,
+    )
+    expect(
+      (await reloaded.listGreyhounds()).find(
+        (candidate) => candidate.id === greyhound.id,
+      )?.status,
+    ).toBe('assigned')
+  })
+  it('prevents assignment before approval and prevents assigning a greyhound twice', async () => {
+    const { api } = setup()
+    const pending = (await api.list({ status: 'pending' }))[0]
+    const approved = await api.list({ status: 'approved' })
+    const greyhound = (await api.listGreyhounds()).find(
+      (candidate) => candidate.status === 'available',
+    )!
+    await expect(
+      api.assignGreyhound(pending.id, greyhound.id, pending.revision),
+    ).rejects.toMatchObject({ code: 'NOT_APPROVED' })
+    await api.assignGreyhound(
+      approved[0].id,
+      greyhound.id,
+      approved[0].revision,
+    )
+    await expect(
+      api.assignGreyhound(
+        approved[1].id,
+        greyhound.id,
+        approved[1].revision,
+      ),
+    ).rejects.toMatchObject({ code: 'NOT_AVAILABLE' })
+  })
   it('requires a meaningful reason for rejection and requests without changing the record', async () => {
     const { api } = setup()
     const a = (await api.list({ status: 'pending' }))[0]

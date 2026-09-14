@@ -25,7 +25,8 @@ Staff can:
 - review applicant, contact, household and pet experience details;
 - move between applications without losing the current list filters;
 - approve or reject an application;
-- request additional information; and
+- request additional information;
+- assign an available greyhound to an approved application; and
 - review the full application activity history.
 
 Applicant submissions appear in the staff application queue. Staff status changes and review notes appear in the applicant portal. Draft applications remain private to the applicant.
@@ -73,4 +74,3 @@ Open the address shown in the terminal.
 npm run check
 ```
 
-The production output is generated in `dist`. Static hosting must route application paths back to `index.html`.

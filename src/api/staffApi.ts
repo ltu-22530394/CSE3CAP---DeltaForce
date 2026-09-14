@@ -1,7 +1,19 @@
 import type { StoredApplication } from '../applicant/features/applicant/applicationModel'
 import { dashboardSummary, isClosed } from './model'
-import type { Application, Decision, Filters, StaffUser, Status } from './model'
-import { seedApplications, staffUser, samplePassword } from './seed'
+import type {
+  Application,
+  Decision,
+  Filters,
+  Greyhound,
+  StaffUser,
+  Status,
+} from './model'
+import {
+  seedApplications,
+  seedGreyhounds,
+  staffUser,
+  samplePassword,
+} from './seed'
 
 export const STORAGE_KEY = 'gap.staff.records.v1'
 export const SESSION_KEY = 'gap.staff.session.v1'
@@ -207,6 +219,23 @@ export function createStaffApi(
         throw new ApiError('This application could not be found.', 'NOT_FOUND')
       return item
     },
+    async listGreyhounds() {
+      await pause()
+      requireStaff()
+      const assignedIds = new Set(
+        records()
+          .map((application) => application.assignment?.greyhoundId)
+          .filter((id): id is string => Boolean(id)),
+      )
+      return seedGreyhounds.map(
+        (greyhound): Greyhound => ({
+          ...greyhound,
+          status: assignedIds.has(greyhound.id)
+            ? 'assigned'
+            : greyhound.status,
+        }),
+      )
+    },
     async dashboard() {
       await pause()
       requireStaff()
@@ -290,6 +319,74 @@ export function createStaffApi(
               (decision === 'approved'
                 ? 'Application approved.'
                 : 'Review started.'),
+          },
+        ],
+      }
+      items[index] = next
+      save(STORAGE_KEY, items)
+      return next
+    },
+    async assignGreyhound(
+      applicationId: string,
+      greyhoundId: string,
+      revision: number,
+    ) {
+      await pause()
+      const user = requireStaff()
+      const items = records()
+      const index = items.findIndex((application) => application.id === applicationId)
+      if (index === -1)
+        throw new ApiError('This application could not be found.', 'NOT_FOUND')
+      const current = items[index]
+      if (current.revision !== revision)
+        throw new ApiError(
+          'This application has changed. Refresh it before assigning a greyhound.',
+          'CONFLICT',
+        )
+      if (current.status !== 'approved')
+        throw new ApiError(
+          'A greyhound can only be assigned to an approved application.',
+          'NOT_APPROVED',
+        )
+      if (current.assignment)
+        throw new ApiError(
+          'A greyhound has already been assigned to this application.',
+          'ALREADY_ASSIGNED',
+        )
+      const greyhound = seedGreyhounds.find((candidate) => candidate.id === greyhoundId)
+      if (!greyhound)
+        throw new ApiError('This greyhound could not be found.', 'NOT_FOUND')
+      const alreadyAssigned = items.some(
+        (application) => application.assignment?.greyhoundId === greyhoundId,
+      )
+      if (greyhound.status !== 'available' || alreadyAssigned)
+        throw new ApiError(
+          'This greyhound is no longer available. Choose another greyhound.',
+          'NOT_AVAILABLE',
+        )
+      const now = clock().toISOString()
+      const assignment = {
+        greyhoundId: greyhound.id,
+        name: greyhound.name,
+        age: greyhound.age,
+        sex: greyhound.sex,
+        assignedAt: now,
+        assignedBy: user.name,
+      }
+      const next: Application = {
+        ...current,
+        assignment,
+        updatedAt: now,
+        revision: revision + 1,
+        history: [
+          ...current.history,
+          {
+            id: `${applicationId}-assignment-${revision + 1}`,
+            at: now,
+            status: 'approved',
+            author: user.name,
+            label: 'Greyhound assigned',
+            note: `${greyhound.name} was assigned to ${current.form.fullName}.`,
           },
         ],
       }

@@ -527,6 +527,12 @@
   .decision-dialog h2 {
     font-size: 1.35rem;
   }
+  .greyhound-option {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .greyhound-status {
+    grid-column: 2;
+  }
   .dialog-actions {
     flex-direction: column-reverse;
   }

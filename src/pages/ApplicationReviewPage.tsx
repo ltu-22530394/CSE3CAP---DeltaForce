@@ -7,6 +7,7 @@ import { staffApi } from '../api/staffApi'
 import { StatusText } from '../components/ApplicationRows'
 import { ErrorState, Loading, useResource } from '../components/AsyncView'
 import { DecisionDialog } from '../components/DecisionDialog'
+import { GreyhoundAssignmentDialog } from '../components/GreyhoundAssignmentDialog'
 import { Icon } from '../components/Icon'
 import { useFeedback } from '../components/Feedback'
 function Detail({ label, children }: { label: string; children: ReactNode }) {
@@ -47,6 +48,7 @@ export function ApplicationReviewPage({
     id: string
     decision: Decision
   } | null>(null)
+  const [assigning, setAssigning] = useState(false)
   const notify = useFeedback()
   if (error)
     return (
@@ -74,6 +76,13 @@ export function ApplicationReviewPage({
         : updated.status === 'in_review'
           ? 'Review started.'
           : `Application ${statusLabels[updated.status].toLowerCase()}.`,
+    )
+  }
+  function assignmentCompleted(updated: Application) {
+    setAssigning(false)
+    changed()
+    notify(
+      `${updated.assignment?.name || 'Greyhound'} assigned to ${updated.form.fullName}.`,
     )
   }
   return (
@@ -265,6 +274,26 @@ export function ApplicationReviewPage({
                 </button>
               </div>
             )}
+            {a.status === 'approved' &&
+              (a.assignment ? (
+                <div className="assigned-greyhound">
+                  <span>Assigned greyhound</span>
+                  <strong>{a.assignment.name}</strong>
+                  <p>
+                    {a.assignment.age} years · {a.assignment.sex} ·{' '}
+                    {shortDate(a.assignment.assignedAt)}
+                  </p>
+                </div>
+              ) : (
+                <div className="decision-buttons">
+                  <button
+                    className="button primary"
+                    onClick={() => setAssigning(true)}
+                  >
+                    Assign Greyhound
+                  </button>
+                </div>
+              ))}
           </section>
           <section className="activity-section">
             <h2>Activity</h2>
@@ -272,13 +301,14 @@ export function ApplicationReviewPage({
               {[...a.history].reverse().map((event) => (
                 <li key={event.id}>
                   <strong>
-                    {event.status === 'pending'
+                    {event.label ||
+                    (event.status === 'pending'
                       ? 'Application submitted'
                       : event.status === 'more_information'
                         ? 'Information requested'
                         : event.status === 'in_review'
                           ? 'Review started'
-                          : `Application ${statusLabels[event.status].toLowerCase()}`}
+                          : `Application ${statusLabels[event.status].toLowerCase()}`)}
                   </strong>
                   <p className="activity-meta">
                     {event.author}
@@ -305,6 +335,13 @@ export function ApplicationReviewPage({
           decision={action.decision}
           close={() => setAction(null)}
           complete={completed}
+        />
+      )}
+      {assigning && (
+        <GreyhoundAssignmentDialog
+          application={a}
+          close={() => setAssigning(false)}
+          complete={assignmentCompleted}
         />
       )}
     </div>
