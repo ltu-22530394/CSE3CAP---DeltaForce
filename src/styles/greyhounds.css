@@ -1,0 +1,177 @@
+.management-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding-bottom: 2.1rem;
+  border-bottom: 1px solid var(--line);
+}
+.management-heading h1 {
+  margin-bottom: 0.65rem;
+}
+.management-heading p {
+  color: var(--muted);
+  font-size: 1.08rem;
+}
+.management-heading > .button {
+  min-width: 10rem;
+}
+.greyhound-filters {
+  display: grid;
+  grid-template-columns: minmax(15rem, 1fr) repeat(2, minmax(10rem, auto));
+  gap: 1rem;
+  align-items: end;
+  padding-top: 2rem;
+}
+.greyhound-list-head,
+.greyhound-row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.4fr) 0.55fr 0.65fr 0.8fr minmax(7rem, 0.8fr);
+  align-items: center;
+  gap: 1rem;
+}
+.greyhound-list-head {
+  padding: 0.75rem 0;
+  border-block: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.greyhound-row {
+  min-height: 5rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.greyhound-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.greyhound-name strong {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.greyhound-name span,
+.assigned-note {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+.greyhound-status-text {
+  color: var(--brand);
+  font-size: 0.92rem;
+}
+.greyhound-status-text.available {
+  color: var(--ink);
+}
+.greyhound-status-text.medical_hold {
+  color: #76574f;
+}
+.greyhound-edit {
+  justify-self: start;
+}
+.greyhound-dialog {
+  width: min(92%, 32rem);
+}
+.greyhound-dialog .eyebrow {
+  margin-bottom: 0.3rem;
+}
+.greyhound-form-row {
+  display: grid;
+  grid-template-columns: 0.65fr 1fr;
+  gap: 1rem;
+}
+.greyhound-form select,
+.greyhound-form input {
+  width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .greyhound-list-head,
+  .greyhound-row {
+    grid-template-columns: minmax(9rem, 1.2fr) 0.55fr 0.65fr 0.8fr minmax(6rem, 0.75fr);
+    gap: 0.7rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .management-heading {
+    align-items: flex-start;
+  }
+  .management-heading p {
+    font-size: 1rem;
+  }
+  .greyhound-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+  .greyhound-filters .search-field {
+    grid-column: 1 / -1;
+  }
+  .greyhound-list-head {
+    display: none;
+  }
+  .greyhound-list {
+    border-top: 1px solid var(--line);
+  }
+  .greyhound-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.65rem 1.25rem;
+    padding: 1rem 0;
+  }
+  .greyhound-name {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .greyhound-row > [data-label] {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    font-size: 0.88rem;
+  }
+  .greyhound-row > [data-label]::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .greyhound-row > [data-label="Age"] {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .greyhound-row > [data-label="Sex"] {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .greyhound-row > [data-label="Status"] {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .greyhound-edit,
+  .assigned-note {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    align-self: end;
+    justify-self: end;
+    text-align: right;
+  }
+}
+
+@media (max-width: 560px) {
+  .management-heading {
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .management-heading > .button {
+    width: 100%;
+  }
+  .greyhound-filters {
+    grid-template-columns: 1fr;
+  }
+  .greyhound-filters .search-field {
+    grid-column: auto;
+  }
+  .greyhound-form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}

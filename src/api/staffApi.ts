@@ -5,6 +5,10 @@ import type {
   Decision,
   Filters,
   Greyhound,
+  GreyhoundFilters,
+  GreyhoundInput,
+  ReportRange,
+  ReportingData,
   StaffUser,
   Status,
 } from './model'
@@ -16,6 +20,7 @@ import {
 } from './seed'
 
 export const STORAGE_KEY = 'gap.staff.records.v1'
+export const GREYHOUNDS_KEY = 'gap.staff.greyhounds.v1'
 export const SESSION_KEY = 'gap.staff.session.v1'
 export class ApiError extends Error {
   constructor(
@@ -164,6 +169,64 @@ export function createStaffApi(
     }
     return value
   }
+  function greyhoundRecords(): Greyhound[] {
+    let value = parse(GREYHOUNDS_KEY)
+    if (value === null) {
+      value = seedGreyhounds
+      save(GREYHOUNDS_KEY, value)
+    }
+    if (
+      !Array.isArray(value) ||
+      value.some(
+        (greyhound) =>
+          !greyhound?.id ||
+          !greyhound?.name ||
+          !Number.isInteger(greyhound?.age) ||
+          !['Female', 'Male'].includes(greyhound?.sex) ||
+          !['available', 'medical_hold'].includes(greyhound?.status),
+      )
+    )
+      throw new ApiError(
+        'Greyhound data could not be opened. Please restore your browser data.',
+        'STORAGE_ERROR',
+      )
+    return value
+  }
+  function greyhoundsWithAssignments() {
+    const assignedIds = new Set(
+      records()
+        .map((application) => application.assignment?.greyhoundId)
+        .filter((id): id is string => Boolean(id)),
+    )
+    return greyhoundRecords().map(
+      (greyhound): Greyhound => ({
+        ...greyhound,
+        status: assignedIds.has(greyhound.id) ? 'assigned' : greyhound.status,
+      }),
+    )
+  }
+  function filterGreyhounds(
+    items: Greyhound[],
+    filters: GreyhoundFilters = {},
+  ) {
+    const query = filters.q?.trim().toLowerCase() || ''
+    return items
+      .filter(
+        (greyhound) =>
+          (!query ||
+            [greyhound.id, greyhound.name, greyhound.sex].some((value) =>
+              value.toLowerCase().includes(query),
+            )) &&
+          (!filters.status || greyhound.status === filters.status),
+      )
+      .sort((a, b) =>
+        filters.sort === 'oldest'
+          ? b.age - a.age || a.name.localeCompare(b.name)
+          : filters.sort === 'youngest'
+            ? a.age - b.age || a.name.localeCompare(b.name)
+            : a.name.localeCompare(b.name),
+      )
+  }
   function filter(items: Application[], filters: Filters = {}) {
     const query = filters.q?.trim().toLowerCase() || ''
     const selected = items.filter(
@@ -219,22 +282,68 @@ export function createStaffApi(
         throw new ApiError('This application could not be found.', 'NOT_FOUND')
       return item
     },
-    async listGreyhounds() {
+    async listGreyhounds(filters: GreyhoundFilters = {}) {
       await pause()
       requireStaff()
-      const assignedIds = new Set(
-        records()
-          .map((application) => application.assignment?.greyhoundId)
-          .filter((id): id is string => Boolean(id)),
-      )
-      return seedGreyhounds.map(
-        (greyhound): Greyhound => ({
-          ...greyhound,
-          status: assignedIds.has(greyhound.id)
-            ? 'assigned'
-            : greyhound.status,
-        }),
-      )
+      return filterGreyhounds(greyhoundsWithAssignments(), filters)
+    },
+    async saveGreyhound(input: GreyhoundInput) {
+      await pause()
+      requireStaff()
+      const items = greyhoundRecords()
+      const name = input.name.trim()
+      if (name.length < 2 || name.length > 80)
+        throw new ApiError(
+          'Enter a greyhound name between 2 and 80 characters.',
+          'VALIDATION',
+        )
+      if (!Number.isInteger(input.age) || input.age < 1 || input.age > 20)
+        throw new ApiError('Enter an age from 1 to 20 years.', 'VALIDATION')
+      if (!['Female', 'Male'].includes(input.sex))
+        throw new ApiError('Choose a sex.', 'VALIDATION')
+      if (!['available', 'medical_hold'].includes(input.status))
+        throw new ApiError('Choose an available status.', 'VALIDATION')
+      if (input.id) {
+        const index = items.findIndex((greyhound) => greyhound.id === input.id)
+        if (index === -1)
+          throw new ApiError('This greyhound could not be found.', 'NOT_FOUND')
+        if (
+          records().some(
+            (application) =>
+              application.assignment?.greyhoundId === input.id,
+          )
+        )
+          throw new ApiError(
+            'Assigned greyhounds cannot be edited from the management list.',
+            'ASSIGNED',
+          )
+        items[index] = {
+          ...items[index],
+          name,
+          age: input.age,
+          sex: input.sex,
+          status: input.status,
+        }
+        save(GREYHOUNDS_KEY, items)
+        return items[index]
+      }
+      const nextNumber =
+        Math.max(
+          1000,
+          ...items.map(
+            (greyhound) =>
+              Number(greyhound.id.replace(/\D/g, '')) || 0,
+          ),
+        ) + 1
+      const next: Greyhound = {
+        id: `GH-${nextNumber}`,
+        name,
+        age: input.age,
+        sex: input.sex,
+        status: input.status,
+      }
+      save(GREYHOUNDS_KEY, [...items, next])
+      return next
     },
     async dashboard() {
       await pause()
@@ -251,6 +360,155 @@ export function createStaffApi(
           { sort: 'oldest' },
         )[0]?.id,
         now,
+      }
+    },
+    async report(range: ReportRange = '30d'): Promise<ReportingData> {
+      await pause()
+      requireStaff()
+      const all = records()
+      const now = clock()
+      const periodDays = range === '7d' ? 7 : 30
+      const currentStart = new Date(now)
+      currentStart.setHours(0, 0, 0, 0)
+      if (range !== 'all')
+        currentStart.setDate(currentStart.getDate() - (periodDays - 1))
+      const previousStart = new Date(currentStart)
+      previousStart.setDate(previousStart.getDate() - periodDays)
+      const withinCurrent = (value: string) =>
+        range === 'all' ||
+        (new Date(value) >= currentStart && new Date(value) <= now)
+      const withinPrevious = (value: string) =>
+        new Date(value) >= previousStart && new Date(value) < currentStart
+      const decisionRecords = all.flatMap((application) => {
+        const activity = [...application.history]
+          .reverse()
+          .find((item) => isClosed(item.status))
+        return activity ? [{ application, activity }] : []
+      })
+      const currentApplications = all.filter((application) =>
+        withinCurrent(application.submittedAt),
+      )
+      const currentDecisions = decisionRecords.filter((record) =>
+        withinCurrent(record.activity.at),
+      )
+      const previousDecisions = decisionRecords.filter((record) =>
+        withinPrevious(record.activity.at),
+      )
+      const calculatePerformance = (
+        decisions: typeof currentDecisions,
+      ) => {
+        const approved = decisions.filter(
+          (record) => record.activity.status === 'approved',
+        )
+        const reviewDays = decisions.map(({ application, activity }) =>
+          Math.max(
+            0,
+            (new Date(activity.at).getTime() -
+              new Date(application.submittedAt).getTime()) /
+              86_400_000,
+          ),
+        )
+        return {
+          decisions: decisions.length,
+          approvalRate: decisions.length
+            ? Math.round((approved.length / decisions.length) * 100)
+            : null,
+          assignmentRate: approved.length
+            ? Math.round(
+                (approved.filter((record) => record.application.assignment)
+                  .length /
+                  approved.length) *
+                  100,
+              )
+            : null,
+          averageReviewDays: reviewDays.length
+            ? Math.round(
+                (reviewDays.reduce((total, days) => total + days, 0) /
+                  reviewDays.length) *
+                  10,
+              ) / 10
+            : null,
+        }
+      }
+      const workflow = [
+        { label: 'Submitted', count: currentApplications.length },
+        {
+          label: 'Review started',
+          count: currentApplications.filter(
+            (application) => application.history.length > 1,
+          ).length,
+        },
+        {
+          label: 'Decision recorded',
+          count: currentApplications.filter((application) =>
+            isClosed(application.status),
+          ).length,
+        },
+        {
+          label: 'Greyhound assigned',
+          count: currentApplications.filter(
+            (application) => application.assignment,
+          ).length,
+        },
+      ]
+      const dayLabel = new Intl.DateTimeFormat('en-AU', { weekday: 'short' })
+      const shortLabel = new Intl.DateTimeFormat('en-AU', {
+        day: 'numeric',
+        month: 'short',
+      })
+      const monthLabel = new Intl.DateTimeFormat('en-AU', {
+        month: 'short',
+        year: 'numeric',
+      })
+      let decisionTrend: ReportingData['decisionTrend']
+      if (range === 'all') {
+        const months = new Map<string, number>()
+        decisionRecords.forEach((record) => {
+          const date = new Date(record.activity.at)
+          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+          months.set(key, (months.get(key) || 0) + 1)
+        })
+        decisionTrend = [...months.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, count]) => ({
+            label: monthLabel.format(new Date(`${key}-01T00:00:00`)),
+            count,
+          }))
+        if (!decisionTrend.length)
+          decisionTrend = [{ label: monthLabel.format(now), count: 0 }]
+      } else {
+        const bucketLength = range === '7d' ? 1 : 7
+        const bucketCount = range === '7d' ? 7 : 5
+        decisionTrend = Array.from({ length: bucketCount }, (_, index) => {
+          const start = new Date(currentStart)
+          start.setDate(start.getDate() + index * bucketLength)
+          const end = new Date(start)
+          end.setDate(end.getDate() + bucketLength)
+          return {
+            label:
+              range === '7d'
+                ? dayLabel.format(start)
+                : shortLabel.format(start),
+            count: currentDecisions.filter((record) => {
+              const date = new Date(record.activity.at)
+              return date >= start && date < end && date <= now
+            }).length,
+          }
+        })
+      }
+      return {
+        range,
+        performance: calculatePerformance(currentDecisions),
+        previousPerformance:
+          range === 'all' ? null : calculatePerformance(previousDecisions),
+        decisionTrend,
+        workflow,
+        applicationTypes: ['Adoption', 'Foster'].map((label) => ({
+          label,
+          count: currentApplications.filter(
+            (application) => application.form.applicationType === label,
+          ).length,
+        })),
       }
     },
     async decide(
@@ -353,7 +611,9 @@ export function createStaffApi(
           'A greyhound has already been assigned to this application.',
           'ALREADY_ASSIGNED',
         )
-      const greyhound = seedGreyhounds.find((candidate) => candidate.id === greyhoundId)
+      const greyhound = greyhoundRecords().find(
+        (candidate) => candidate.id === greyhoundId,
+      )
       if (!greyhound)
         throw new ApiError('This greyhound could not be found.', 'NOT_FOUND')
       const alreadyAssigned = items.some(

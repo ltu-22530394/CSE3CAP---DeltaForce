@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { createStaffApi, STORAGE_KEY, SESSION_KEY } from './staffApi'
+import {
+  createStaffApi,
+  GREYHOUNDS_KEY,
+  STORAGE_KEY,
+  SESSION_KEY,
+} from './staffApi'
 import { seedApplications, samplePassword, staffUser } from './seed'
 import { dashboardSummary, isClosed } from './model'
 const now = new Date('2026-09-05T18:00:00')
@@ -115,6 +120,69 @@ describe('staff application workflow', () => {
         (candidate) => candidate.id === greyhound.id,
       )?.status,
     ).toBe('assigned')
+  })
+  it('creates, filters and updates greyhound records persistently', async () => {
+    const { api, storage } = setup()
+    const created = await api.saveGreyhound({
+      name: 'Nell',
+      age: 4,
+      sex: 'Female',
+      status: 'medical_hold',
+    })
+    expect(created).toMatchObject({ id: 'GH-1091', name: 'Nell' })
+    expect(await api.listGreyhounds({ q: 'nell' })).toHaveLength(1)
+    expect(
+      await api.listGreyhounds({ status: 'medical_hold' }),
+    ).toHaveLength(2)
+    await api.saveGreyhound({
+      ...created,
+      status: 'available',
+    })
+    const reloaded = createStaffApi(storage, 0, () => now)
+    expect((await reloaded.listGreyhounds({ q: created.id }))[0]).toMatchObject({
+      name: 'Nell',
+      status: 'available',
+    })
+  })
+  it('derives reporting values from applications and greyhound assignments', async () => {
+    const { api } = setup()
+    const report = await api.report('all')
+    expect(report.performance).toMatchObject({
+      decisions: 29,
+      approvalRate: 90,
+      assignmentRate: 0,
+    })
+    expect(report.previousPerformance).toBeNull()
+    expect(report.decisionTrend.reduce((sum, item) => sum + item.count, 0)).toBe(
+      29,
+    )
+    expect(report.workflow[0]).toEqual({ label: 'Submitted', count: 48 })
+    expect(report.workflow[2]).toEqual({
+      label: 'Decision recorded',
+      count: 29,
+    })
+    expect(
+      report.applicationTypes.reduce((sum, item) => sum + item.count, 0),
+    ).toBe(48)
+    const application = (await api.list({ status: 'approved' }))[0]
+    await api.assignGreyhound(application.id, 'GH-1042', application.revision)
+    const updated = await api.report('all')
+    expect(updated.performance.assignmentRate).toBe(4)
+    expect(updated.workflow).toContainEqual({
+      label: 'Greyhound assigned',
+      count: 1,
+    })
+    const recent = await api.report('7d')
+    expect(recent.previousPerformance).not.toBeNull()
+    expect(recent.decisionTrend).toHaveLength(7)
+  })
+  it('rejects corrupt greyhound storage without overwriting it', async () => {
+    const { api, values } = setup()
+    values.set(GREYHOUNDS_KEY, '{invalid')
+    await expect(api.listGreyhounds()).rejects.toMatchObject({
+      code: 'STORAGE_ERROR',
+    })
+    expect(values.get(GREYHOUNDS_KEY)).toBe('{invalid')
   })
   it('prevents assignment before approval and prevents assigning a greyhound twice', async () => {
     const { api } = setup()

@@ -15,6 +15,8 @@ export function Icon({
     | 'check'
     | 'refresh'
     | 'user'
+    | 'greyhound'
+    | 'reports'
 }) {
   const paths = {
     dashboard: (
@@ -55,6 +57,20 @@ export function Icon({
       <>
         <circle cx="12" cy="7" r="4" />
         <path d="M4 22v-3a8 8 0 0 1 16 0v3" />
+      </>
+    ),
+    greyhound: (
+      <>
+        <circle cx="6.5" cy="7" r="2" />
+        <circle cx="11" cy="4.8" r="1.7" />
+        <circle cx="15.7" cy="5.6" r="1.8" />
+        <circle cx="18.5" cy="9.5" r="1.8" />
+        <path d="M7.2 14.8c1.2-3.7 7.2-4.6 9.5-.7 1.7 2.8-.3 5.4-3.2 4.3-1-.4-1.9-.4-2.9.1-2.8 1.2-4.4-.7-3.4-3.7Z" />
+      </>
+    ),
+    reports: (
+      <>
+        <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
       </>
     ),
   }

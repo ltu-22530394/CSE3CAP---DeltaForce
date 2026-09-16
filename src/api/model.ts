@@ -20,12 +20,44 @@ export interface StaffUser {
 }
 export type GreyhoundStatus = 'available' | 'medical_hold' | 'assigned'
 export type GreyhoundSex = 'Female' | 'Male'
+export type GreyhoundEditableStatus = Exclude<GreyhoundStatus, 'assigned'>
 export interface Greyhound {
   id: string
   name: string
   age: number
   sex: GreyhoundSex
   status: GreyhoundStatus
+}
+export interface GreyhoundInput {
+  id?: string
+  name: string
+  age: number
+  sex: GreyhoundSex
+  status: GreyhoundEditableStatus
+}
+export interface GreyhoundFilters {
+  q?: string
+  status?: string
+  sort?: string
+}
+export type ReportRange = '7d' | '30d' | 'all'
+export interface ReportItem {
+  label: string
+  count: number
+}
+export interface ReportPerformance {
+  decisions: number
+  approvalRate: number | null
+  assignmentRate: number | null
+  averageReviewDays: number | null
+}
+export interface ReportingData {
+  range: ReportRange
+  performance: ReportPerformance
+  previousPerformance: ReportPerformance | null
+  decisionTrend: ReportItem[]
+  workflow: ReportItem[]
+  applicationTypes: ReportItem[]
 }
 export interface GreyhoundAssignment {
   greyhoundId: string

@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
 import type { StaffUser } from './api/model'
-import { SESSION_KEY, STORAGE_KEY, staffApi } from './api/staffApi'
+import {
+  GREYHOUNDS_KEY,
+  SESSION_KEY,
+  STORAGE_KEY,
+  staffApi,
+} from './api/staffApi'
 import { StaffShell } from './components/StaffShell'
 import { FeedbackProvider } from './components/Feedback'
 import { ErrorState } from './components/AsyncView'
@@ -15,6 +20,8 @@ import { ApplicationFormPage } from './applicant/features/applicant/pages/Applic
 import { ProtectedRoute } from './applicant/routes/ProtectedRoute'
 import './applicant/styles.css'
 import { ProfilePage } from './pages/ProfilePage'
+import { GreyhoundsPage } from './pages/GreyhoundsPage'
+import { ReportsPage } from './pages/ReportsPage'
 function readSession(): { user: StaffUser | null; error: Error | null } {
   try {
     return { user: staffApi.session(), error: null }
@@ -36,6 +43,7 @@ function PortalRoutes() {
       if (e.key === SESSION_KEY || e.key === null) setSession(readSession())
       if (
         e.key === STORAGE_KEY ||
+        e.key === GREYHOUNDS_KEY ||
         e.key === 'gap.mock.applications' ||
         e.key === null
       )
@@ -168,6 +176,16 @@ function PortalRoutes() {
                     changed={changed}
                   />
                 }
+              />
+              <Route
+                path="/staff/greyhounds"
+                element={
+                  <GreyhoundsPage revision={revision} changed={changed} />
+                }
+              />
+              <Route
+                path="/staff/reports"
+                element={<ReportsPage revision={revision} />}
               />
               <Route
                 path="/staff/profile"

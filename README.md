@@ -26,7 +26,10 @@ Staff can:
 - move between applications without losing the current list filters;
 - approve or reject an application;
 - request additional information;
-- assign an available greyhound to an approved application; and
+- add and update greyhound records;
+- manage greyhound availability and medical holds;
+- assign an available greyhound to an approved application;
+- view review performance and application flow reports; and
 - review the full application activity history.
 
 Applicant submissions appear in the staff application queue. Staff status changes and review notes appear in the applicant portal. Draft applications remain private to the applicant.
@@ -42,19 +45,17 @@ Staff use the shared Login page with the local staff account:
 
 Each account is routed to the appropriate portal, and protected routes prevent access to the other role’s workspace.
 
-## Local data
 
-The portal currently uses asynchronous browser-based data services backed by `localStorage`. Account sessions, drafts, submitted applications, review decisions and activity history remain available in the same browser and origin.
 
 ## Project structure
 
 - `src/App.tsx` — portal routes and role-based access.
 - `src/applicant/features/auth` — registration, login and applicant sessions.
 - `src/applicant/features/applicant` — applicant dashboard, application form, validation and application data service.
-- `src/api` — staff data service, application decisions and dashboard calculations.
-- `src/pages` — staff dashboard, application list, review and profile pages.
+- `src/api` — staff data service, application decisions, greyhound records and report calculations.
+- `src/pages` — staff dashboard, applications, greyhounds, reports, review and profile pages.
 - `src/components` — staff navigation, application rows, dialogs and feedback.
-- `src/styles/index.css` — staff portal styles.
+- `src/styles` — separate staff shell, dashboard, application, greyhound, reporting and account styles.
 - `src/applicant/styles.css` — applicant and authentication styles.
 
 ## Run locally
@@ -73,4 +74,5 @@ Open the address shown in the terminal.
 ```bash
 npm run check
 ```
+
 
