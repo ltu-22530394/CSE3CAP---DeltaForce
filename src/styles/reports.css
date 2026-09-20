@@ -31,9 +31,8 @@
 }
 .report-metrics strong {
   color: var(--brand);
-
   font-size: 2.65rem;
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1.05;
 }
 .report-metrics small {
@@ -60,9 +59,8 @@
 }
 .report-section-heading > span strong {
   color: var(--brand);
-
   font-size: 1.7rem;
-  font-weight: 400;
+  font-weight: 600;
   margin-right: 0.25rem;
 }
 .report-trend-plot {
@@ -136,7 +134,7 @@
 }
 .report-bar-track {
   height: 0.5rem;
-  background: #e8e1dc;
+  background: #dfe8f0;
   overflow: hidden;
   border-radius: 999px;
 }

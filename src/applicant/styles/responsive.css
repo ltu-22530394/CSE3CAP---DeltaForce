@@ -14,6 +14,10 @@
     padding-top: 28px;
     padding-left: 0;
   }
+
+  .applicant-surface .applicant-home-photo {
+    height: 220px;
+  }
 }
 
 @media (max-width: 620px) {
@@ -60,6 +64,14 @@
   .applicant-surface .next-step-panel .secondary-button {
     width: 100%;
   }
+
+  .applicant-surface .applicant-home-photo {
+    height: 180px;
+  }
+
+  .applicant-surface .field-help__tooltip {
+    width: min(290px, calc(100vw - 64px));
+  }
 }
 
 @media (max-height: 760px) and (min-width: 801px) {
@@ -91,52 +103,5 @@
 
   .applicant-surface .auth-page--register .form-field input {
     min-height: 40px;
-  }
-}
-
-/* Register page: keep the mobile form inside the card without changing desktop UI. */
-@media (max-width: 800px) {
-  .applicant-surface .auth-page--overlay.auth-page--register {
-    padding: 24px 16px 32px;
-  }
-
-  .applicant-surface .auth-page--overlay.auth-page--register .auth-card {
-    width: min(100%, 440px);
-  }
-
-  .applicant-surface .auth-page--register .auth-panel {
-    width: 100%;
-    padding: 28px 22px;
-  }
-
-  .applicant-surface .auth-page--register .auth-panel h1 {
-    font-size: clamp(1.9rem, 8vw, 2.2rem);
-  }
-
-  .applicant-surface .auth-page--register .auth-panel > p {
-    margin-bottom: 20px;
-  }
-
-  .applicant-surface .auth-page--register .auth-panel form {
-    gap: 14px;
-    min-width: 0;
-  }
-
-  .applicant-surface .auth-page--register .form-field,
-  .applicant-surface .auth-page--register .password-input {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .applicant-surface .auth-page--register .form-field input {
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-  }
-}
-
-@media (max-width: 420px) {
-  .applicant-surface .auth-page--register .auth-panel {
-    padding: 24px 18px;
   }
 }

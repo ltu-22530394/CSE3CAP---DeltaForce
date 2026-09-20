@@ -185,16 +185,16 @@
   position: fixed;
   background: var(--canvas);
   color: var(--ink);
-  border: 1px solid #d6c8c0;
+  border: 1px solid var(--line);
   border-radius: 0.65rem;
   padding: 2rem;
   width: min(92%, 35rem);
   max-height: 90dvh;
   overflow: auto;
-  box-shadow: 0 20px 80px #21140d25;
+  box-shadow: var(--shadow-dialog);
 }
 .decision-dialog::backdrop {
-  background: #29201855;
+  background: var(--scrim);
 }
 .decision-dialog h2 {
   font-size: 1.5rem;

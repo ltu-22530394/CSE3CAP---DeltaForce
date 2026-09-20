@@ -45,7 +45,9 @@ Staff use the shared Login page with the local staff account:
 
 Each account is routed to the appropriate portal, and protected routes prevent access to the other role’s workspace.
 
+## Local data
 
+The portal currently uses asynchronous browser-based data services backed by `localStorage`. Account sessions, drafts, submitted applications, review decisions, greyhound records, assignments and activity history remain available in the same browser and origin.
 
 ## Project structure
 
@@ -74,5 +76,4 @@ Open the address shown in the terminal.
 ```bash
 npm run check
 ```
-
 
