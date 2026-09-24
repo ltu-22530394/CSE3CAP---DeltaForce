@@ -146,6 +146,26 @@ export function StaffShell({
             <Icon name="file" />
             <span>Applications</span>
           </NavLink>
+          <NavLink
+            to="/staff/greyhounds"
+            onClick={() => setNavigationOpen(false)}
+            className={({ isActive }) =>
+              `nav-item${isActive ? ' selected' : ''}`
+            }
+          >
+            <Icon name="greyhound" />
+            <span>Greyhounds</span>
+          </NavLink>
+          <NavLink
+            to="/staff/reports"
+            onClick={() => setNavigationOpen(false)}
+            className={({ isActive }) =>
+              `nav-item${isActive ? ' selected' : ''}`
+            }
+          >
+            <Icon name="reports" />
+            <span>Reports</span>
+          </NavLink>
         </nav>
         <div
           className="profile-area"

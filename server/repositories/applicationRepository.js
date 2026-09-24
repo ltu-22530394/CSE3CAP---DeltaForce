@@ -1,3 +1,4 @@
+import { queueApplicationMail } from '../services/mail.js'
 import { randomUUID } from 'node:crypto'
 import { getDatabase, withTransaction } from '../database/db.js'
 import { ApiError } from '../utils/apiError.js'
@@ -21,11 +22,11 @@ function map(row) {
 }
 
 function selectOwned(db, id, applicantId) {
-  return db.prepare(`SELECT fa.*, fd.* FROM foster_applications fa LEFT JOIN foster_application_details fd ON fd.application_id = fa.id WHERE fa.id = ? AND fa.applicant_id = ?`).get(id, applicantId)
+  return db.prepare(`SELECT fd.*, fa.* FROM foster_applications fa LEFT JOIN foster_application_details fd ON fd.application_id = fa.id WHERE fa.id = ? AND fa.applicant_id = ?`).get(id, applicantId)
 }
 
 export function listApplications(applicantId) {
-  return getDatabase().prepare(`SELECT fa.*, fd.* FROM foster_applications fa LEFT JOIN foster_application_details fd ON fd.application_id = fa.id WHERE fa.applicant_id = ? ORDER BY fa.created_at DESC`).all(applicantId).map(map)
+  return getDatabase().prepare(`SELECT fd.*, fa.* FROM foster_applications fa LEFT JOIN foster_application_details fd ON fd.application_id = fa.id WHERE fa.applicant_id = ? ORDER BY fa.created_at DESC`).all(applicantId).map(map)
 }
 
 export function getApplication(id, applicantId) {
@@ -70,7 +71,10 @@ export function deleteApplication(id, applicantId) {
 }
 
 export function submitApplication(id, applicantId) {
-  const result = getDatabase().prepare(`UPDATE foster_applications SET application_status = 'submitted', submitted_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND applicant_id = ? AND application_status = 'draft'`).run(id, applicantId)
+  return withTransaction(db => {
+  const result = db.prepare(`UPDATE foster_applications SET application_status = 'submitted', submitted_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND applicant_id = ? AND application_status = 'draft'`).run(id, applicantId)
   if (!result.changes) throw new ApiError(409, 'APPLICATION_LOCKED', 'Application is already submitted or unavailable.')
+  queueApplicationMail(id, 'application_confirmation', `submitted:${id}`, db)
   return getApplication(id, applicantId)
+  })
 }

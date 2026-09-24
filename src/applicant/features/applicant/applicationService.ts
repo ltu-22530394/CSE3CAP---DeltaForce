@@ -1,3 +1,4 @@
+import { getStoredSession } from '../auth/authSession'
 import type { Application } from '../../../api/model'
 import type {
   ApplicationStatus,
@@ -106,7 +107,7 @@ function upsertMockApplication({
   return application
 }
 
-export const applicationService: ApplicationService = {
+const mockApplicationService: ApplicationService = {
   async list(applicantId: string) {
     return newestFirst(
       readMockApplications().filter(
@@ -139,3 +140,20 @@ export const applicationService: ApplicationService = {
     })
   },
 }
+
+export function createApiApplicationService(baseUrl: string): ApplicationService {
+  async function request(path: string, input?: unknown) {
+    const session = getStoredSession()
+    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/portal/applications${path}`, { method: input ? 'POST' : 'GET', headers: { 'content-type': 'application/json', authorization: `Bearer ${session?.token || ''}` }, body: input ? JSON.stringify(input) : undefined })
+    const result = await response.json()
+    if (!response.ok) throw serviceError(result.error?.message || 'Request failed.', result.error?.code || 'REQUEST_FAILED')
+    return result
+  }
+  return {
+    async list() { return (await request('')).applications },
+    async get(id) { return (await request(`/${encodeURIComponent(id)}`)).application },
+    async saveDraft(input) { return (await request('', { ...input, submit: false })).application },
+    async submit(input) { return (await request('', { ...input, currentStep: 3, submit: true })).application },
+  }
+}
+export const applicationService = import.meta.env.VITE_API_URL ? createApiApplicationService(import.meta.env.VITE_API_URL) : mockApplicationService

@@ -29,10 +29,28 @@ export function DashboardPage({ revision }: { revision: number }) {
   return (
     <div className="dashboard-page">
       <header className="dashboard-heading">
-        <h1>{longDate(data.now)}</h1>
-        <p className="dashboard-intro">
-          Here is today’s adoption programme overview.
-        </p>
+        <div className="dashboard-heading__copy">
+          <h1>{longDate(data.now)}</h1>
+          <p className="dashboard-intro">
+            Here is today’s adoption programme overview.
+          </p>
+        </div>
+        <figure className="dashboard-greyhound-photo">
+          <img
+            src="https://images.unsplash.com/photo-1729322071816-c5df8e489172?auto=format&fit=crop&w=960&q=82"
+            alt="A brindle greyhound running along a beach"
+          />
+          <figcaption>
+            Photo by{' '}
+            <a
+              href="https://unsplash.com/photos/a-dog-running-on-a-beach-with-a-person-in-the-background-mUQDJ1XGAeI?utm_source=gap_portal&utm_medium=referral"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Valeriano G / Unsplash
+            </a>
+          </figcaption>
+        </figure>
       </header>
       <section
         className="overview-strip"

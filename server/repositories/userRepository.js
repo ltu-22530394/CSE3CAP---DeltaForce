@@ -1,3 +1,5 @@
+import { config } from '../config.js'
+import { issueAccountToken } from '../services/accountTokens.js'
 import { randomUUID } from 'node:crypto'
 
 import { getDatabase, withTransaction } from '../database/db.js'
@@ -17,6 +19,7 @@ function toPublicUser(row) {
     fullName: row.full_name || fullName(row),
     role: row.role_id,
     accountStatus: row.account_status,
+    tokenVersion: row.token_version || 0,
     emailVerified: Boolean(row.email_verified_at),
   }
 }
@@ -28,6 +31,7 @@ function selectPublicUserById(db, id) {
         SELECT
           u.id,
           u.email,
+          u.token_version,
           u.role_id,
           u.account_status,
           u.email_verified_at,
@@ -55,6 +59,7 @@ export function findUserCredentialsByEmail(email) {
         SELECT
           u.id,
           u.email,
+          u.token_version,
           u.password_hash,
           u.role_id,
           u.account_status,
@@ -97,9 +102,9 @@ export function createApplicantAccount({
     db.prepare(
       `
         INSERT INTO users (id, email, password_hash, role_id, account_status)
-        VALUES (?, ?, ?, 'applicant', 'active')
+        VALUES (?, ?, ?, 'applicant', ?)
       `,
-    ).run(userId, email, passwordHash)
+    ).run(userId, email, passwordHash, config.requireEmailVerification ? 'pending_verification' : 'active')
 
     db.prepare(
       `
@@ -107,6 +112,7 @@ export function createApplicantAccount({
         VALUES (?, ?, ?, ?)
       `,
     ).run(applicantId, userId, firstName, lastName)
+    issueAccountToken({ id: userId, email }, 'email_verification', db)
   })
 
   return findPublicUserById(userId)

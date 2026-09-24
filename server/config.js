@@ -21,6 +21,8 @@ if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
 }
 
 export const config = {
+  appBasePath: (process.env.APP_BASE_PATH || '').replace(/\/$/, ''),
+  requireEmailVerification: process.env.REQUIRE_EMAIL_VERIFICATION !== 'false',
   appOrigin: process.env.APP_ORIGIN || 'http://localhost:5173',
   dbFile: resolveProjectPath(process.env.GAPS_DB_FILE, 'server/data/gaps.sqlite'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1h',

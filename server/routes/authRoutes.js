@@ -1,3 +1,5 @@
+import { rateLimit } from 'express-rate-limit'
+import { requestAccountToken, consumeAccountToken } from '../services/accountTokens.js'
 import { Router } from 'express'
 
 import { config } from '../config.js'
@@ -17,6 +19,23 @@ import { hashPassword, verifyPassword } from '../utils/password.js'
 import { validateLogin, validateRegistration } from '../utils/authValidation.js'
 
 export const authRouter = Router()
+authRouter.use(['/login', '/register'], rateLimit({ windowMs: 15 * 60 * 1000, limit: 100, standardHeaders: 'draft-8', legacyHeaders: false }))
+const recoveryLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false })
+authRouter.use(['/forgot-password', '/resend-verification', '/reset-password', '/verify-email'], recoveryLimit)
+for (const [path, type] of [['/forgot-password', 'password_reset'], ['/resend-verification', 'email_verification']]) {
+  authRouter.post(path, (req, res) => {
+    requestAccountToken(req.body?.email, type)
+    res.status(202).json({ message: 'If this account is eligible, an email will be sent. Check your inbox.' })
+  })
+}
+authRouter.post('/reset-password', asyncRoute(async (req, res) => {
+  await consumeAccountToken(req.body?.token, 'password_reset', req.body?.password)
+  res.json({ message: 'Your password has been reset. Please sign in again.' })
+}))
+authRouter.post('/verify-email', asyncRoute(async (req, res) => {
+  await consumeAccountToken(req.body?.token, 'email_verification')
+  res.json({ message: 'Your email is verified. You can now sign in.' })
+}))
 
 authRouter.post(
   '/register',

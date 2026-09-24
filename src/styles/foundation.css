@@ -28,18 +28,24 @@
 }
 :root {
   font-family: 'GAP Sans', 'Helvetica Neue', Arial, sans-serif;
-  color: #202020;
-  background: #f7f4f0;
+  color: #172536;
+  background: #f4f7fb;
   font-synthesis: none;
   font-weight: 400;
-  --canvas: #f7f4f0;
-  --ink: #202020;
-  --muted: #625e5d;
-  --brand: #870d29;
-  --brand-hover: #700820;
-  --selected: #efdee0;
-  --line: #e4dcd6;
-  --avatar: #eae5e1;
+  --canvas: #f4f7fb;
+  --ink: #172536;
+  --muted: #5c6b79;
+  --brand: #0b5cab;
+  --brand-hover: #084a8d;
+  --selected: #dceaf7;
+  --line: #d8e2ec;
+  --line-strong: #b8c8d8;
+  --avatar: #e5edf5;
+  --surface: #ffffff;
+  --surface-soft: #e8f0f7;
+  --scrim: #102a4255;
+  --shadow-subtle: 0 8px 28px #17395815;
+  --shadow-dialog: 0 20px 80px #12355225;
   --sidebar: 21.7%;
   font-size: 16px;
   line-height: 1.5;
@@ -171,17 +177,17 @@ img {
   background: var(--brand-hover);
 }
 .secondary {
-  border-color: #cfc3bb;
+  border-color: #b8c8d8;
   background: transparent;
 }
 .secondary:hover:not(:disabled) {
-  background: #eee7e1;
+  background: #e8f0f7;
 }
 .text-button {
   color: var(--brand);
 }
 .text-button:hover {
-  background: #f0e3e2;
+  background: #e2edf7;
 }
 .text-link {
   text-decoration: underline;

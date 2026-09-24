@@ -1,3 +1,4 @@
+import { portalApplicationRouter } from './routes/portalApplicationRoutes.js'
 import cors from 'cors'
 import express from 'express'
 
@@ -28,6 +29,7 @@ export function createApp() {
   })
 
   app.use('/api/auth', authRouter)
+  app.use('/api/portal/applications', portalApplicationRouter)
   app.use('/api/applications', applicationRouter)
   app.use('/api/staff/applications', staffApplicationRouter)
   app.use('/api/staff', staffRouter)
@@ -38,7 +40,7 @@ export function createApp() {
   })
 
   app.use((error, _req, res, _next) => {
-    const statusCode = error instanceof ApiError ? error.statusCode : 500
+    const statusCode = error instanceof ApiError ? error.statusCode : error.type === 'entity.too.large' ? 413 : error.type === 'entity.parse.failed' ? 400 : 500
     const code = error instanceof ApiError ? error.code : 'INTERNAL_ERROR'
     const message =
       error instanceof ApiError

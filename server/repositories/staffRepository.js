@@ -1,3 +1,4 @@
+import { queueApplicationMail } from '../services/mail.js'
 import { randomUUID } from 'node:crypto'
 import { getDatabase, withTransaction } from '../database/db.js'
 import { recordAuditLog } from './auditRepository.js'
@@ -7,9 +8,9 @@ const toUiStatus = { submitted: 'pending', under_review: 'in_review', informatio
 const toDbStatus = { pending: 'submitted', in_review: 'under_review', more_information: 'information_required', approved: 'approved', rejected: 'rejected' }
 
 const applicationSelect = `
-  SELECT fa.*, a.first_name, a.last_name, a.phone, a.date_of_birth,
+  SELECT fd.*, fa.*, a.first_name, a.last_name, a.phone, a.date_of_birth,
     a.address_line_1, a.address_line_2, a.suburb, a.state, a.postcode,
-    u.email, fd.*
+    u.email
   FROM foster_applications fa
   JOIN applicants a ON a.id = fa.applicant_id
   JOIN users u ON u.id = a.user_id
@@ -17,17 +18,22 @@ const applicationSelect = `
 
 function applicationHistory(db, row) {
   const history = [{ id: `${row.id}-submitted`, at: row.submitted_at || row.created_at, status: 'pending', author: `${row.first_name} ${row.last_name}`, note: 'Application submitted.' }]
-  for (const note of db.prepare(`SELECT n.*, COALESCE(s.full_name, u.email) author FROM application_notes n JOIN users u ON u.id=n.created_by_user_id LEFT JOIN staff_profiles s ON s.user_id=u.id WHERE n.application_id=? ORDER BY n.created_at`).all(row.id)) {
-    history.push({ id: note.id, at: note.created_at, status: note.note_text.startsWith('[status:') ? note.note_text.slice(8, note.note_text.indexOf(']')) : toUiStatus[row.application_status], author: note.author, note: note.note_text.replace(/^\[status:[^\]]+\]\s*/, '') })
+  for (const note of db.prepare(`SELECT n.*, COALESCE(s.full_name, u.email) author FROM application_notes n JOIN users u ON u.id=n.created_by_user_id LEFT JOIN staff_profiles s ON s.user_id=u.id WHERE n.application_id=? ORDER BY n.created_at,n.rowid`).all(row.id)) {
+    history.push({ id: note.id, at: note.created_at, status: note.note_text.startsWith('[status:') ? note.note_text.slice(8, note.note_text.indexOf(']')) : toUiStatus[row.application_status], author: note.author, label: note.note_text.includes('[assignment]') ? 'Greyhound assigned' : undefined, note: note.note_text.replace(/^\[status:[^\]]+\]\s*/, '').replace('[assignment] ', '') })
   }
   return history
 }
 
+function assignmentFor(db, applicationId) {
+  const row = db.prepare(`SELECT g.*,ga.created_at assigned_at,COALESCE(s.full_name,u.email) assigned_by FROM greyhound_allocations ga JOIN greyhounds g ON g.id=ga.greyhound_id JOIN users u ON u.id=ga.allocated_by_user_id LEFT JOIN staff_profiles s ON s.user_id=u.id WHERE ga.application_id=? AND ga.allocation_status IN ('proposed','confirmed','active')`).get(applicationId)
+  return row ? { greyhoundId: row.id, name: row.name, age: row.age_years, sex: row.sex === 'female' ? 'Female' : 'Male', assignedAt: row.assigned_at, assignedBy: row.assigned_by } : undefined
+}
 function mapApplication(db, row) {
   if (!row) return null
   const yesNo = (value) => value == null ? 'Not provided' : value ? 'Yes' : 'No'
   return {
     id: row.id,
+    assignment: assignmentFor(db, row.id),
     status: toUiStatus[row.application_status] || 'pending',
     form: {
       fullName: `${row.first_name} ${row.last_name}`.trim(), dateOfBirth: row.date_of_birth || '', email: row.email,
@@ -37,6 +43,7 @@ function mapApplication(db, row) {
       secureYard: row.yard_or_outdoor_area || '', applicationType: row.application_type === 'adoption' ? 'Adoption' : 'Foster', dogExperience: row.previous_dog_experience || '',
       greyhoundExperience: row.previous_greyhound_experience || '', hasCurrentPets: row.existing_pets ? 'Yes' : 'No', currentPetsDetails: row.existing_pets || '',
       confirmAccurate: Boolean(row.terms_accepted && row.privacy_consent),
+      ...(row.portal_form_json ? { ...JSON.parse(row.portal_form_json), applicationType: row.application_type === 'adoption' ? 'Adoption' : 'Foster' } : {}),
     },
     submittedAt: row.submitted_at || row.created_at, updatedAt: row.updated_at, revision: row.revision,
     history: applicationHistory(db, row),
@@ -52,9 +59,9 @@ export function listStaffApplications(filters = {}) {
   return result.sort((a, b) => filters.sort === 'name' ? a.form.fullName.localeCompare(b.form.fullName) : filters.sort === 'oldest' ? a.submittedAt.localeCompare(b.submittedAt) : b.submittedAt.localeCompare(a.submittedAt))
 }
 
-export function getStaffApplication(id) {
+export function getStaffApplication(id, includeDraft = false) {
   const db = getDatabase()
-  const item = mapApplication(db, db.prepare(`${applicationSelect} WHERE fa.id=?`).get(id))
+  const item = mapApplication(db, db.prepare(`${applicationSelect} WHERE fa.id=? ${includeDraft ? '' : "AND fa.application_status NOT IN ('draft','withdrawn','inactive')"}`).get(id))
   if (!item) throw new ApiError(404, 'APPLICATION_NOT_FOUND', 'Application could not be found.')
   return item
 }
@@ -68,6 +75,9 @@ export function decideApplication(id, input, actorUserId, req) {
     const result = db.prepare(`UPDATE foster_applications SET application_status=?, assigned_staff_user_id=?, decided_by_user_id=CASE WHEN ? IN ('approved','rejected') THEN ? ELSE decided_by_user_id END, decision_at=CASE WHEN ? IN ('approved','rejected') THEN datetime('now') ELSE decision_at END, rejection_reason=CASE WHEN ?='rejected' THEN ? ELSE rejection_reason END, revision=revision+1, updated_at=datetime('now') WHERE id=? AND revision=?`).run(toDbStatus[input.decision], actorUserId, input.decision, actorUserId, input.decision, input.decision, input.note, id, input.revision)
     if (!result.changes) throw new ApiError(409, 'CONFLICT', 'This application has changed. Refresh it before making a decision.')
     db.prepare(`INSERT INTO application_notes (id, application_id, created_by_user_id, note_text, visible_to_applicant) VALUES (?,?,?,?,?)`).run(randomUUID(), id, actorUserId, `[status:${input.decision}] ${input.note || (input.decision === 'approved' ? 'Application approved.' : 'Review started.')}`, Number(['rejected','more_information','approved'].includes(input.decision)))
+    if (input.decision === 'approved') db.prepare("UPDATE users SET role_id='foster_carer' WHERE id=(SELECT a.user_id FROM applicants a JOIN foster_applications f ON f.applicant_id=a.id WHERE f.id=?) AND role_id='applicant'").run(id)
+    const type = { approved: 'approval', rejected: 'rejection', more_information: 'information_required' }[input.decision]
+    if (type) queueApplicationMail(id, type, `decision:${id}:${input.revision + 1}`, db)
   })
   const next = getStaffApplication(id)
   recordAuditLog({ actorUserId, action: 'application.status_changed', entityType: 'foster_application', entityId: id, previousValue: { status: current.status }, newValue: { status: next.status }, req })
@@ -83,14 +93,19 @@ export function createAllocation(input, actorUserId, req) {
   let allocation
   try {
     withTransaction((db) => {
-      const application = db.prepare(`SELECT applicant_id, application_status FROM foster_applications WHERE id=?`).get(input.applicationId)
+      const application = db.prepare(`SELECT applicant_id, application_status,revision FROM foster_applications WHERE id=?`).get(input.applicationId)
       if (!application) throw new ApiError(404, 'APPLICATION_NOT_FOUND', 'Application could not be found.')
       if (application.application_status !== 'approved') throw new ApiError(409, 'APPLICATION_NOT_APPROVED', 'Only an approved application can receive a greyhound allocation.')
       const greyhound = db.prepare(`SELECT availability_status FROM greyhounds WHERE id=?`).get(input.greyhoundId)
       if (!greyhound) throw new ApiError(404, 'GREYHOUND_NOT_FOUND', 'Greyhound could not be found.')
       if (!['available','returned'].includes(greyhound.availability_status)) throw new ApiError(409, 'GREYHOUND_UNAVAILABLE', 'This greyhound is not available for allocation.')
-      db.prepare(`INSERT INTO greyhound_allocations (id,foster_carer_applicant_id,greyhound_id,allocated_by_user_id,expected_start_date,expected_end_date,allocation_status,internal_notes) VALUES (?,?,?,?,?,?,?,?)`).run(id, application.applicant_id, input.greyhoundId, actorUserId, input.expectedStartDate, input.expectedEndDate, input.status, input.notes)
+      if (input.revision !== undefined && application.revision !== input.revision) throw new ApiError(409, 'CONFLICT', 'Refresh this application before assigning.')
+      if (db.prepare("SELECT 1 FROM greyhound_allocations WHERE application_id=? AND allocation_status IN ('proposed','confirmed','active')").get(input.applicationId)) throw new ApiError(409, 'ALREADY_ASSIGNED', 'This application already has an assignment.')
+      db.prepare(`INSERT INTO greyhound_allocations (id,foster_carer_applicant_id,greyhound_id,allocated_by_user_id,expected_start_date,expected_end_date,allocation_status,internal_notes,application_id) VALUES (?,?,?,?,?,?,?,?,?)`).run(id, application.applicant_id, input.greyhoundId, actorUserId, input.expectedStartDate, input.expectedEndDate, input.status, input.notes, input.applicationId)
       db.prepare(`UPDATE greyhounds SET availability_status=?, updated_at=datetime('now') WHERE id=?`).run(input.status === 'active' ? 'allocated' : 'pending_allocation', input.greyhoundId)
+      db.prepare("UPDATE foster_applications SET revision=revision+1,updated_at=datetime('now') WHERE id=?").run(input.applicationId)
+      db.prepare('INSERT INTO application_notes (application_id,created_by_user_id,note_text,visible_to_applicant) VALUES (?,?,?,1)').run(input.applicationId, actorUserId, '[status:approved] [assignment] Greyhound assigned.')
+      queueApplicationMail(input.applicationId, 'allocation', `allocation:${id}`, db)
       allocation = db.prepare(`SELECT ga.*, g.name AS greyhound_name, g.greyhound_identifier FROM greyhound_allocations ga JOIN greyhounds g ON g.id=ga.greyhound_id WHERE ga.id=?`).get(id)
     })
   } catch (error) {
@@ -102,5 +117,5 @@ export function createAllocation(input, actorUserId, req) {
 }
 
 export function listAllocations(applicationId) {
-  return getDatabase().prepare(`SELECT ga.*, g.name AS greyhound_name, g.greyhound_identifier FROM greyhound_allocations ga JOIN greyhounds g ON g.id=ga.greyhound_id JOIN foster_applications fa ON fa.applicant_id=ga.foster_carer_applicant_id WHERE (? IS NULL OR fa.id=?) ORDER BY ga.created_at DESC`).all(applicationId || null, applicationId || null)
+  return getDatabase().prepare(`SELECT ga.*, g.name AS greyhound_name, g.greyhound_identifier FROM greyhound_allocations ga JOIN greyhounds g ON g.id=ga.greyhound_id WHERE (? IS NULL OR ga.application_id=?) ORDER BY ga.created_at DESC`).all(applicationId || null, applicationId || null)
 }

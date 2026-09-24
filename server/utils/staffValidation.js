@@ -36,5 +36,6 @@ export function validateAllocation(body = {}) {
   const startDate = date(body.expectedStartDate, 'Expected start date')
   const endDate = date(body.expectedEndDate, 'Expected end date')
   if (startDate && endDate && endDate < startDate) throw new ApiError(400, 'VALIDATION', 'Expected end date cannot be before the start date.')
-  return { applicationId, greyhoundId, status, expectedStartDate: startDate, expectedEndDate: endDate, notes: text(body.notes, 'Notes') }
+  if (body.revision !== undefined && (!Number.isInteger(body.revision) || body.revision < 0)) throw new ApiError(400, 'VALIDATION', 'A valid revision is required.')
+  return { revision: body.revision, applicationId, greyhoundId, status, expectedStartDate: startDate, expectedEndDate: endDate, notes: text(body.notes, 'Notes') }
 }

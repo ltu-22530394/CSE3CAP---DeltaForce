@@ -4,3 +4,9 @@ coverage/
 .DS_Store
 *.tar.gz
 *.zip
+
+.env
+.env.*
+!.env.example
+server/data/*.sqlite*
+server/data/*.db*

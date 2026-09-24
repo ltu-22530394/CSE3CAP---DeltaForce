@@ -20,7 +20,7 @@ export function requireAuth(req, _res, next) {
     const payload = verifyAccessToken(token)
     const user = findPublicUserById(payload.sub)
 
-    if (!user) {
+    if (!user || (payload.version || 0) !== user.tokenVersion) {
       next(new ApiError(401, 'INVALID_TOKEN', 'Authentication token is invalid.'))
       return
     }

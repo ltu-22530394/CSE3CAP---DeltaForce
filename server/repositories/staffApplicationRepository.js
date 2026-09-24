@@ -1,3 +1,4 @@
+import { queueApplicationMail } from '../services/mail.js'
 import { getDatabase, withTransaction } from '../database/db.js'
 import { recordAuditLog } from './auditRepository.js'
 import { ApiError } from '../utils/apiError.js'
@@ -447,7 +448,7 @@ export function approveStaffApplication(id, staffUserId, input = {}, req = null)
     db.prepare(
       `
         UPDATE foster_applications
-        SET application_status = 'approved',
+        SET application_status = 'approved', revision=revision+1,
             assigned_staff_user_id = COALESCE(assigned_staff_user_id, ?),
             decided_by_user_id = ?,
             decision_at = datetime('now'),
@@ -467,6 +468,7 @@ export function approveStaffApplication(id, staffUserId, input = {}, req = null)
       `,
     ).run(application.applicant_user_id)
 
+    queueApplicationMail(id, 'approval', `approved:${id}`, db)
     insertDecisionNote(db, { applicationId: id, staffUserId, note })
     recordDecisionAudit(db, {
       req,
@@ -492,7 +494,7 @@ export function rejectStaffApplication(id, staffUserId, input = {}, req = null) 
     db.prepare(
       `
         UPDATE foster_applications
-        SET application_status = 'rejected',
+        SET application_status = 'rejected', revision=revision+1,
             assigned_staff_user_id = COALESCE(assigned_staff_user_id, ?),
             decided_by_user_id = ?,
             decision_at = datetime('now'),
@@ -503,6 +505,7 @@ export function rejectStaffApplication(id, staffUserId, input = {}, req = null) 
       `,
     ).run(staffUserId, staffUserId, reason, reason, id)
 
+    queueApplicationMail(id, 'rejection', `rejected:${id}`, db)
     insertDecisionNote(db, { applicationId: id, staffUserId, note: reason })
     recordDecisionAudit(db, {
       req,

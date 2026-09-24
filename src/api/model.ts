@@ -18,6 +18,56 @@ export interface StaffUser {
   role: string
   email: string
 }
+export type GreyhoundStatus = 'available' | 'medical_hold' | 'assigned'
+export type GreyhoundSex = 'Female' | 'Male'
+export type GreyhoundEditableStatus = Exclude<GreyhoundStatus, 'assigned'>
+export interface Greyhound {
+  identifier?: string
+  id: string
+  name: string
+  age: number
+  sex: GreyhoundSex
+  status: GreyhoundStatus
+}
+export interface GreyhoundInput {
+  id?: string
+  name: string
+  age: number
+  sex: GreyhoundSex
+  status: GreyhoundEditableStatus
+}
+export interface GreyhoundFilters {
+  q?: string
+  status?: string
+  sort?: string
+}
+export type ReportRange = '7d' | '30d' | 'all'
+export interface ReportItem {
+  label: string
+  count: number
+}
+export interface ReportPerformance {
+  decisions: number
+  approvalRate: number | null
+  assignmentRate: number | null
+  averageReviewDays: number | null
+}
+export interface ReportingData {
+  range: ReportRange
+  performance: ReportPerformance
+  previousPerformance: ReportPerformance | null
+  decisionTrend: ReportItem[]
+  workflow: ReportItem[]
+  applicationTypes: ReportItem[]
+}
+export interface GreyhoundAssignment {
+  greyhoundId: string
+  name: string
+  age: number
+  sex: GreyhoundSex
+  assignedAt: string
+  assignedBy: string
+}
 export interface ApplicationForm {
   fullName: string
   dateOfBirth: string
@@ -43,6 +93,7 @@ export interface Activity {
   status: Status
   author: string
   note: string
+  label?: string
 }
 export interface Application {
   id: string
@@ -52,6 +103,7 @@ export interface Application {
   updatedAt: string
   revision: number
   history: Activity[]
+  assignment?: GreyhoundAssignment
 }
 export interface Filters {
   q?: string
@@ -105,7 +157,7 @@ export function dashboardSummary(applications: Application[], now: Date) {
   const completed = applications.filter(
     (a) =>
       isClosed(a.status) &&
-      a.history.some((h) => isClosed(h.status) && withinWeek(h.at)),
+      a.history.some((h) => isClosed(h.status) && h.label !== 'Greyhound assigned' && withinWeek(h.at)),
   ).length
   const days = Array.from({ length: 7 }, (_, day) => {
     const date = new Date(start)

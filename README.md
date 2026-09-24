@@ -25,7 +25,11 @@ Staff can:
 - review applicant, contact, household and pet experience details;
 - move between applications without losing the current list filters;
 - approve or reject an application;
-- request additional information; and
+- request additional information;
+- add and update greyhound records;
+- manage greyhound availability and medical holds;
+- assign an available greyhound to an approved application;
+- view review performance and application flow reports; and
 - review the full application activity history.
 
 Applicant submissions appear in the staff application queue. Staff status changes and review notes appear in the applicant portal. Draft applications remain private to the applicant.
@@ -41,19 +45,23 @@ Staff use the shared Login page with the local staff account:
 
 Each account is routed to the appropriate portal, and protected routes prevent access to the other role’s workspace.
 
-## Local data
+## Data modes
 
-By default, the portal uses asynchronous browser-based data services backed by `localStorage`. Account sessions, drafts, submitted applications, review decisions and activity history remain available in the same browser and origin. Set `VITE_API_URL` to use the authenticated Express/SQLite staff integration instead.
+With `VITE_API_URL` configured, applicant forms, staff review, greyhound management, assignments and reporting share the Express/SQLite backend. New accounts require email verification by default. Configure the mail worker before testing registration with a real inbox.
+
+Without `VITE_API_URL`, the original browser-local demonstration remains available. Its example staff login above applies only to demo mode; API mode uses the staff account/password created by `npm run seed:staff`. CSV import and account recovery require API mode.
+
+See [Sprint 4 setup, acceptance evidence and handoff](docs/SPRINT4-HANDOFF.md) for SMTP configuration, CSV rules, migration notes and remaining client/team checks.
 
 ## Project structure
 
 - `src/App.tsx` — portal routes and role-based access.
 - `src/applicant/features/auth` — registration, login and applicant sessions.
 - `src/applicant/features/applicant` — applicant dashboard, application form, validation and application data service.
-- `src/api` — staff data service, application decisions and dashboard calculations.
-- `src/pages` — staff dashboard, application list, review and profile pages.
+- `src/api` — staff data service, application decisions, greyhound records and report calculations.
+- `src/pages` — staff dashboard, applications, greyhounds, reports, review and profile pages.
 - `src/components` — staff navigation, application rows, dialogs and feedback.
-- `src/styles/index.css` — staff portal styles.
+- `src/styles` — separate staff shell, dashboard, application, greyhound, reporting and account styles.
 - `src/applicant/styles.css` — applicant and authentication styles.
 
 ## Run locally
@@ -67,7 +75,7 @@ npm run dev
 
 Open the address shown in the terminal.
 
-### Run with the integrated API (DEL-54 and DEL-55)
+### Run with the integrated API
 
 Copy `.env.example` to `.env`, set a strong `JWT_SECRET` and `STAFF_PASSWORD`, then run:
 
@@ -78,7 +86,7 @@ npm run seed:staff
 npm run start:api
 ```
 
-In a second terminal, run `npm run dev`. When `VITE_API_URL` is set, the existing staff screens use the authenticated Express/SQLite API. Without it, the original local-storage demo remains available.
+In a second terminal, run `npm run dev`. When `VITE_API_URL` is set, the applicant and staff screens use the authenticated Express/SQLite API. Without it, the original local-storage demo remains available.
 
 Staff endpoints are available under `/api/staff`: application list/detail/decision, available greyhounds, and greyhound allocations. Staff and admin roles are required.
 
@@ -87,5 +95,3 @@ Staff endpoints are available under `/api/staff`: application list/detail/decisi
 ```bash
 npm run check
 ```
-
-The production output is generated in `dist`. Static hosting must route application paths back to `index.html`.

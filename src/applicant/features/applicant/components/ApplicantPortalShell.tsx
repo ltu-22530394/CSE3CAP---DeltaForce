@@ -67,7 +67,7 @@ export function ApplicantPortalShell({
         >
           <img
             className="portal-brand__logo"
-            src="/assets/gap-logo.png"
+            src="/assets/gap-logo-blue.png"
             alt=""
             aria-hidden="true"
           />
