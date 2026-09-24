@@ -14,6 +14,10 @@
     padding-top: 28px;
     padding-left: 0;
   }
+
+  .applicant-surface .applicant-home-photo {
+    height: 220px;
+  }
 }
 
 @media (max-width: 620px) {
@@ -59,6 +63,14 @@
 
   .applicant-surface .next-step-panel .secondary-button {
     width: 100%;
+  }
+
+  .applicant-surface .applicant-home-photo {
+    height: 180px;
+  }
+
+  .applicant-surface .field-help__tooltip {
+    width: min(290px, calc(100vw - 64px));
   }
 }
 

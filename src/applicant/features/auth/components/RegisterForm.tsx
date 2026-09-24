@@ -44,7 +44,7 @@ export function RegisterForm(): ReactElement {
       navigate('/login', {
         replace: true,
         state: {
-          registrationMessage: 'Registration successful. You can now log in.',
+          registrationMessage: import.meta.env.VITE_API_URL ? 'Registration successful. Check your email to verify your account before signing in.' : 'Registration successful. You can now log in.',
         },
       })
     } catch (error) {

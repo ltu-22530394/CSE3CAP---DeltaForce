@@ -212,6 +212,22 @@ export function ApplicantDashboardPage(): ReactElement | null {
           </div>
 
           <aside className="applicant-dashboard-aside">
+            <figure className="applicant-home-photo">
+              <img
+                src="https://images.unsplash.com/photo-1754702431026-a42a5bdc9ef1?auto=format&fit=crop&w=900&q=82"
+                alt="A brindle greyhound resting comfortably outdoors"
+              />
+              <figcaption>
+                Photo by{' '}
+                <a
+                  href="https://unsplash.com/photos/a-brindle-greyhound-rests-on-a-red-blanket-r4_VhphM61M?utm_source=gap_portal&utm_medium=referral"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Derek Otway / Unsplash
+                </a>
+              </figcaption>
+            </figure>
             <section
               className="application-process"
               aria-labelledby="application-process-title"

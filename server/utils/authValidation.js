@@ -33,8 +33,8 @@ export function validateRegistration(body) {
   }
   if (!password) {
     errors.password = 'Password is required.'
-  } else if (password.length < MINIMUM_PASSWORD_LENGTH) {
-    errors.password = `Password must be at least ${MINIMUM_PASSWORD_LENGTH} characters.`
+  } else if (password.length < MINIMUM_PASSWORD_LENGTH || Buffer.byteLength(password) > 72) {
+    errors.password = `Password must be at least ${MINIMUM_PASSWORD_LENGTH} characters and no more than 72 bytes.`
   }
 
   if (Object.keys(errors).length > 0) {

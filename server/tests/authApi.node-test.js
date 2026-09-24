@@ -1,3 +1,4 @@
+process.env.REQUIRE_EMAIL_VERIFICATION = 'false'
 import assert from 'node:assert/strict'
 import { after, before, describe, it } from 'node:test'
 import fs from 'node:fs'

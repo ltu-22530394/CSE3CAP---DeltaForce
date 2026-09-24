@@ -11,6 +11,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { Alert } from '../../../components/Alert'
 import { FormField } from '../../../components/FormField'
+import { FieldHelp } from '../../../components/FieldHelp'
 import { useAuth } from '../../auth/AuthContext'
 import { ApplicantPortalShell } from '../components/ApplicantPortalShell'
 import {
@@ -107,23 +108,38 @@ interface TextareaFieldProps
   id: string
   label: string
   error?: string
+  helpText?: string
 }
 
 function TextareaField({
   id,
   label,
   error,
+  helpText,
   ...textareaProps
 }: TextareaFieldProps): ReactElement {
   const errorId = `${id}-error`
   return (
     <div className="form-field form-field--wide">
-      <label htmlFor={id}>{label}</label>
+      <div className="form-field__label">
+        <label htmlFor={id}>{label}</label>
+        {helpText && (
+          <FieldHelp
+            id={`${id}-help`}
+            fieldName={label.replace(/\s*\*$/, '')}
+            reason={helpText}
+          />
+        )}
+      </div>
       <textarea
         id={id}
         rows={4}
         aria-invalid={Boolean(error)}
-        aria-describedby={error ? errorId : undefined}
+        aria-describedby={
+          [helpText ? `${id}-help` : '', error ? errorId : '']
+            .filter(Boolean)
+            .join(' ') || undefined
+        }
         {...textareaProps}
       />
       <FieldError id={errorId}>{error}</FieldError>
@@ -226,6 +242,7 @@ function PersonalDetailsStep({
         onChange={onChange}
         onClick={(event) => event.currentTarget.showPicker?.()}
         disabled={disabled}
+        helpText="Used to confirm eligibility and support age-appropriate placement decisions."
       />
       <FormField
         id="application-email"
@@ -262,6 +279,7 @@ function PersonalDetailsStep({
         error={errors.address}
         onChange={onChange}
         disabled={disabled}
+        helpText="Used to assess the home environment and plan a suitable greyhound placement."
       />
     </div>
   )

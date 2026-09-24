@@ -42,7 +42,7 @@
 input,
 select,
 textarea {
-  border: 1px solid #cfc3bb;
+  border: 1px solid var(--line-strong);
   background: transparent;
   border-radius: 0.35rem;
   min-height: 2.9rem;
@@ -51,7 +51,7 @@ textarea {
 }
 input::placeholder,
 textarea::placeholder {
-  color: #7a716b;
+  color: #657382;
 }
 select {
   padding-right: 1.5rem;

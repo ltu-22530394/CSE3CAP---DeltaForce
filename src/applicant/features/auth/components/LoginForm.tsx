@@ -100,6 +100,7 @@ export function LoginForm(): ReactElement {
         </button>
       </form>
 
+      <p><Link to="/forgot-password">Forgot password?</Link> · <Link to="/resend-verification">Resend verification email</Link></p>
       <p className="auth-panel__switch">
         Don&apos;t have an account?{' '}
         <Link to="/register">Create an account</Link>

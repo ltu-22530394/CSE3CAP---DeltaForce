@@ -45,6 +45,8 @@ function validatePersonalDetails(form: ApplicationForm): ApplicationErrors {
   errors.phone = required(form.phone, 'Phone number is required.')
   errors.address = required(form.address, 'Address is required.')
 
+  if (!errors.address && (form.address.trim().length < 5 || !/[a-z]/i.test(form.address))) errors.address = 'Enter a complete residential address including a street name.'
+
   if (!errors.dateOfBirth) {
     const dateOfBirth = parseDateOfBirth(form.dateOfBirth)
     if (!dateOfBirth) {

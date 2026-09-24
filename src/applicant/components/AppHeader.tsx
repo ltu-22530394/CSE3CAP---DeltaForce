@@ -15,7 +15,7 @@ export function AppHeader({
       <div className="brand" aria-label="Greyhound Adoption Program">
         <img
           className="brand__logo"
-          src="/assets/gap-logo.png"
+          src="/assets/gap-logo-blue.png"
           alt=""
           aria-hidden="true"
         />

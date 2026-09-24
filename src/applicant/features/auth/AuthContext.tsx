@@ -55,6 +55,15 @@ export function AuthProvider({ children }: PropsWithChildren): ReactElement {
           return staff
         }
         const nextSession = await authService.login(credentials)
+        const apiUser = nextSession.user as ApplicantUser & { role?: string }
+        if (import.meta.env.VITE_API_URL && apiUser.role && ['staff','admin'].includes(apiUser.role)) {
+          const staff = { id: apiUser.id, name: apiUser.fullName, email: apiUser.email, role: apiUser.role }
+          window.localStorage.setItem('gap.staff.http-session.v1', JSON.stringify({ token: nextSession.token, user: staff }))
+          clearStoredSession()
+          setSession(null)
+          window.dispatchEvent(new Event('gap-session-change'))
+          return staff
+        }
         staffApi.logout()
         window.dispatchEvent(new Event('gap-session-change'))
         saveStoredSession(nextSession)

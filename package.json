@@ -14,14 +14,18 @@
     "check": "npm run lint && npm run typecheck && npm run test && npm run test:server && npm run build",
     "start:api": "node server/server.js",
     "init:db": "node server/scripts/init-db.js",
-    "seed:staff": "node server/scripts/seed-staff.js"
+    "seed:staff": "node server/scripts/seed-staff.js",
+    "mail:deliver": "node server/scripts/send-mail.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
+    "csv-parse": "^7.0.2",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
     "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^10.0.10",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-router-dom": "7.18.2"
