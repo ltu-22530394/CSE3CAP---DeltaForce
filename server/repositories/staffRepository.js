@@ -16,24 +16,24 @@ const applicationSelect = `
   JOIN users u ON u.id = a.user_id
   LEFT JOIN foster_application_details fd ON fd.application_id = fa.id`
 
-function applicationHistory(db, row) {
+function applicationHistory(db, row, notes) {
   const history = [{ id: `${row.id}-submitted`, at: row.submitted_at || row.created_at, status: 'pending', author: `${row.first_name} ${row.last_name}`, note: 'Application submitted.' }]
-  for (const note of db.prepare(`SELECT n.*, COALESCE(s.full_name, u.email) author FROM application_notes n JOIN users u ON u.id=n.created_by_user_id LEFT JOIN staff_profiles s ON s.user_id=u.id WHERE n.application_id=? ORDER BY n.created_at,n.rowid`).all(row.id)) {
+  for (const note of notes ?? db.prepare(`SELECT n.*, COALESCE(s.full_name, u.email) author FROM application_notes n JOIN users u ON u.id=n.created_by_user_id LEFT JOIN staff_profiles s ON s.user_id=u.id WHERE n.application_id=? ORDER BY n.created_at,n.rowid`).all(row.id)) {
     history.push({ id: note.id, at: note.created_at, status: note.note_text.startsWith('[status:') ? note.note_text.slice(8, note.note_text.indexOf(']')) : toUiStatus[row.application_status], author: note.author, label: note.note_text.includes('[assignment]') ? 'Greyhound assigned' : undefined, note: note.note_text.replace(/^\[status:[^\]]+\]\s*/, '').replace('[assignment] ', '') })
   }
   return history
 }
 
-function assignmentFor(db, applicationId) {
-  const row = db.prepare(`SELECT g.*,ga.created_at assigned_at,COALESCE(s.full_name,u.email) assigned_by FROM greyhound_allocations ga JOIN greyhounds g ON g.id=ga.greyhound_id JOIN users u ON u.id=ga.allocated_by_user_id LEFT JOIN staff_profiles s ON s.user_id=u.id WHERE ga.application_id=? AND ga.allocation_status IN ('proposed','confirmed','active')`).get(applicationId)
+function assignmentFor(db, applicationId, prefetched) {
+  const row = prefetched === undefined ? db.prepare(`SELECT g.*,ga.created_at assigned_at,COALESCE(s.full_name,u.email) assigned_by FROM greyhound_allocations ga JOIN greyhounds g ON g.id=ga.greyhound_id JOIN users u ON u.id=ga.allocated_by_user_id LEFT JOIN staff_profiles s ON s.user_id=u.id WHERE ga.application_id=? AND ga.allocation_status IN ('proposed','confirmed','active')`).get(applicationId) : prefetched
   return row ? { greyhoundId: row.id, name: row.name, age: row.age_years, sex: row.sex === 'female' ? 'Female' : 'Male', assignedAt: row.assigned_at, assignedBy: row.assigned_by } : undefined
 }
-function mapApplication(db, row) {
+function mapApplication(db, row, related) {
   if (!row) return null
   const yesNo = (value) => value == null ? 'Not provided' : value ? 'Yes' : 'No'
   return {
     id: row.id,
-    assignment: assignmentFor(db, row.id),
+    assignment: assignmentFor(db, row.id, related?.assignment),
     status: toUiStatus[row.application_status] || 'pending',
     form: {
       fullName: `${row.first_name} ${row.last_name}`.trim(), dateOfBirth: row.date_of_birth || '', email: row.email,
@@ -46,16 +46,31 @@ function mapApplication(db, row) {
       ...(row.portal_form_json ? { ...JSON.parse(row.portal_form_json), applicationType: row.application_type === 'adoption' ? 'Adoption' : 'Foster' } : {}),
     },
     submittedAt: row.submitted_at || row.created_at, updatedAt: row.updated_at, revision: row.revision,
-    history: applicationHistory(db, row),
+    history: applicationHistory(db, row, related?.notes),
   }
 }
 
 export function listStaffApplications(filters = {}) {
   const db = getDatabase()
   const rows = db.prepare(`${applicationSelect} WHERE fa.application_status NOT IN ('draft','withdrawn','inactive')`).all()
+  // Fetch related data once for the list instead of issuing two queries per row.
+  const notesByApplication = new Map()
+  for (const note of db.prepare(`SELECT n.*, COALESCE(s.full_name,u.email) author
+    FROM application_notes n JOIN foster_applications fa ON fa.id=n.application_id
+    JOIN users u ON u.id=n.created_by_user_id LEFT JOIN staff_profiles s ON s.user_id=u.id
+    WHERE fa.application_status NOT IN ('draft','withdrawn','inactive') ORDER BY n.created_at,n.rowid`).all()) {
+    if (!notesByApplication.has(note.application_id)) notesByApplication.set(note.application_id, [])
+    notesByApplication.get(note.application_id).push(note)
+  }
+  const assignments = new Map(db.prepare(`SELECT g.*,ga.application_id,ga.created_at assigned_at,
+    COALESCE(s.full_name,u.email) assigned_by FROM greyhound_allocations ga
+    JOIN foster_applications fa ON fa.id=ga.application_id JOIN greyhounds g ON g.id=ga.greyhound_id
+    JOIN users u ON u.id=ga.allocated_by_user_id LEFT JOIN staff_profiles s ON s.user_id=u.id
+    WHERE fa.application_status NOT IN ('draft','withdrawn','inactive')
+      AND ga.allocation_status IN ('proposed','confirmed','active')`).all().map(row => [row.application_id, row]))
   const query = String(filters.q || '').trim().toLowerCase()
   const wantedStatus = filters.status === 'in_progress' ? new Set(['in_review', 'more_information']) : filters.status ? new Set([filters.status]) : null
-  const result = rows.map((row) => mapApplication(db, row)).filter((item) => (!query || [item.id, item.form.fullName, item.form.email, item.form.address].some((v) => v.toLowerCase().includes(query))) && (!wantedStatus || wantedStatus.has(item.status)) && (!filters.type || filters.type === item.form.applicationType))
+  const result = rows.map((row) => mapApplication(db, row, { notes: notesByApplication.get(row.id) || [], assignment: assignments.get(row.id) || null })).filter((item) => (!query || [item.id, item.form.fullName, item.form.email, item.form.address].some((v) => v.toLowerCase().includes(query))) && (!wantedStatus || wantedStatus.has(item.status)) && (!filters.type || filters.type === item.form.applicationType))
   return result.sort((a, b) => filters.sort === 'name' ? a.form.fullName.localeCompare(b.form.fullName) : filters.sort === 'oldest' ? a.submittedAt.localeCompare(b.submittedAt) : b.submittedAt.localeCompare(a.submittedAt))
 }
 

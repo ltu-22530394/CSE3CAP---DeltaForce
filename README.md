@@ -95,3 +95,5 @@ Staff endpoints are available under `/api/staff`: application list/detail/decisi
 ```bash
 npm run check
 ```
+
+For the isolated staff API benchmark, run `node server/scripts/benchmark-staff.js` with Node 24+. It creates and removes a synthetic temporary database and sends no email. See [Sprint 5 performance evidence and delivery checks](docs/SPRINT5-PERFORMANCE.md).
