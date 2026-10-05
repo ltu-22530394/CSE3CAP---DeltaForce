@@ -1,0 +1,48 @@
+{
+  "measuredAt": "2026-10-05T04:52:34.969Z",
+  "node": "v24.21.0",
+  "platform": "darwin arm64",
+  "cpu": "Apple M4 Pro",
+  "applications": 1000,
+  "notesPerApplication": 3,
+  "warmups": 3,
+  "transport": "localhost HTTP including body read and JSON parse; no TLS or browser render",
+  "results": [
+    {
+      "name": "staff-list",
+      "concurrency": 1,
+      "samples": 30,
+      "medianMs": 17.94,
+      "p95Ms": 22.68,
+      "maxMs": 22.92,
+      "responseBytes": 1050138
+    },
+    {
+      "name": "staff-search",
+      "concurrency": 1,
+      "samples": 30,
+      "medianMs": 11.58,
+      "p95Ms": 12.14,
+      "maxMs": 12.19,
+      "responseBytes": 1069
+    },
+    {
+      "name": "staff-detail",
+      "concurrency": 1,
+      "samples": 30,
+      "medianMs": 0.52,
+      "p95Ms": 0.72,
+      "maxMs": 1.18,
+      "responseBytes": 1050
+    },
+    {
+      "name": "staff-list-5-concurrent",
+      "concurrency": 5,
+      "samples": 30,
+      "medianMs": 81.33,
+      "p95Ms": 98.5,
+      "maxMs": 101.05,
+      "responseBytes": 1050138
+    }
+  ]
+}
