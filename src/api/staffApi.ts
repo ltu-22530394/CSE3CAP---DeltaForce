@@ -1,9 +1,28 @@
 import type { StoredApplication } from '../applicant/features/applicant/applicationModel'
-import { dashboardSummary, isClosed, statusLabels } from './model'
-import type { Application, Decision, Filters, StaffUser, Status } from './model'
-import { seedApplications, staffUser, samplePassword } from './seed'
+import { useServerApi } from './http'
+import { serverStaffApi } from './serverStaffApi'
+import { dashboardSummary, isClosed } from './model'
+import type {
+  Application,
+  Decision,
+  Filters,
+  Greyhound,
+  GreyhoundFilters,
+  GreyhoundInput,
+  ReportRange,
+  ReportingData,
+  StaffUser,
+  Status,
+} from './model'
+import {
+  seedApplications,
+  seedGreyhounds,
+  staffUser,
+  samplePassword,
+} from './seed'
 
 export const STORAGE_KEY = 'gap.staff.records.v1'
+export const GREYHOUNDS_KEY = 'gap.staff.greyhounds.v1'
 export const SESSION_KEY = 'gap.staff.session.v1'
 export class ApiError extends Error {
   constructor(
@@ -152,6 +171,62 @@ export function createStaffApi(
     }
     return value
   }
+  function greyhoundRecords(): Greyhound[] {
+    let value = parse(GREYHOUNDS_KEY)
+    if (value === null) {
+      value = seedGreyhounds
+      save(GREYHOUNDS_KEY, value)
+    }
+    if (
+      !Array.isArray(value) ||
+      value.some(
+        (greyhound) =>
+          !greyhound?.id ||
+          !greyhound?.name ||
+          !Number.isInteger(greyhound?.age) ||
+          !['Female', 'Male'].includes(greyhound?.sex) ||
+          !['available', 'medical_hold'].includes(greyhound?.status),
+      )
+    )
+      throw new ApiError(
+        'Greyhound data could not be opened. Please restore your browser data.',
+        'STORAGE_ERROR',
+      )
+    return value
+  }
+  function greyhoundsWithAssignments() {
+    const assignedIds = new Set(
+      records()
+        .map((application) => application.assignment?.greyhoundId)
+        .filter((id): id is string => Boolean(id)),
+    )
+    return greyhoundRecords().map((greyhound): Greyhound => ({
+      ...greyhound,
+      status: assignedIds.has(greyhound.id) ? 'assigned' : greyhound.status,
+    }))
+  }
+  function filterGreyhounds(
+    items: Greyhound[],
+    filters: GreyhoundFilters = {},
+  ) {
+    const query = filters.q?.trim().toLowerCase() || ''
+    return items
+      .filter(
+        (greyhound) =>
+          (!query ||
+            [greyhound.id, greyhound.name, greyhound.sex].some((value) =>
+              value.toLowerCase().includes(query),
+            )) &&
+          (!filters.status || greyhound.status === filters.status),
+      )
+      .sort((a, b) =>
+        filters.sort === 'oldest'
+          ? b.age - a.age || a.name.localeCompare(b.name)
+          : filters.sort === 'youngest'
+            ? a.age - b.age || a.name.localeCompare(b.name)
+            : a.name.localeCompare(b.name),
+      )
+  }
   function filter(items: Application[], filters: Filters = {}) {
     const query = filters.q?.trim().toLowerCase() || ''
     const selected = items.filter(
@@ -207,6 +282,67 @@ export function createStaffApi(
         throw new ApiError('This application could not be found.', 'NOT_FOUND')
       return item
     },
+    async listGreyhounds(filters: GreyhoundFilters = {}) {
+      await pause()
+      requireStaff()
+      return filterGreyhounds(greyhoundsWithAssignments(), filters)
+    },
+    async saveGreyhound(input: GreyhoundInput) {
+      await pause()
+      requireStaff()
+      const items = greyhoundRecords()
+      const name = input.name.trim()
+      if (name.length < 2 || name.length > 80)
+        throw new ApiError(
+          'Enter a greyhound name between 2 and 80 characters.',
+          'VALIDATION',
+        )
+      if (!Number.isInteger(input.age) || input.age < 1 || input.age > 20)
+        throw new ApiError('Enter an age from 1 to 20 years.', 'VALIDATION')
+      if (!['Female', 'Male'].includes(input.sex))
+        throw new ApiError('Choose a sex.', 'VALIDATION')
+      if (!['available', 'medical_hold'].includes(input.status))
+        throw new ApiError('Choose an available status.', 'VALIDATION')
+      if (input.id) {
+        const index = items.findIndex((greyhound) => greyhound.id === input.id)
+        if (index === -1)
+          throw new ApiError('This greyhound could not be found.', 'NOT_FOUND')
+        if (
+          records().some(
+            (application) => application.assignment?.greyhoundId === input.id,
+          )
+        )
+          throw new ApiError(
+            'Assigned greyhounds cannot be edited from the management list.',
+            'ASSIGNED',
+          )
+        items[index] = {
+          ...items[index],
+          name,
+          age: input.age,
+          sex: input.sex,
+          status: input.status,
+        }
+        save(GREYHOUNDS_KEY, items)
+        return items[index]
+      }
+      const nextNumber =
+        Math.max(
+          1000,
+          ...items.map(
+            (greyhound) => Number(greyhound.id.replace(/\D/g, '')) || 0,
+          ),
+        ) + 1
+      const next: Greyhound = {
+        id: `GH-${nextNumber}`,
+        name,
+        age: input.age,
+        sex: input.sex,
+        status: input.status,
+      }
+      save(GREYHOUNDS_KEY, [...items, next])
+      return next
+    },
     async dashboard() {
       await pause()
       requireStaff()
@@ -224,11 +360,159 @@ export function createStaffApi(
         now,
       }
     },
+    async report(range: ReportRange = '30d'): Promise<ReportingData> {
+      await pause()
+      requireStaff()
+      const all = records()
+      const now = clock()
+      const periodDays = range === '7d' ? 7 : 30
+      const currentStart = new Date(now)
+      currentStart.setHours(0, 0, 0, 0)
+      if (range !== 'all')
+        currentStart.setDate(currentStart.getDate() - (periodDays - 1))
+      const previousStart = new Date(currentStart)
+      previousStart.setDate(previousStart.getDate() - periodDays)
+      const withinCurrent = (value: string) =>
+        range === 'all' ||
+        (new Date(value) >= currentStart && new Date(value) <= now)
+      const withinPrevious = (value: string) =>
+        new Date(value) >= previousStart && new Date(value) < currentStart
+      const decisionRecords = all.flatMap((application) => {
+        const activity = [...application.history]
+          .reverse()
+          .find((item) => isClosed(item.status))
+        return activity ? [{ application, activity }] : []
+      })
+      const currentApplications = all.filter((application) =>
+        withinCurrent(application.submittedAt),
+      )
+      const currentDecisions = decisionRecords.filter((record) =>
+        withinCurrent(record.activity.at),
+      )
+      const previousDecisions = decisionRecords.filter((record) =>
+        withinPrevious(record.activity.at),
+      )
+      const calculatePerformance = (decisions: typeof currentDecisions) => {
+        const approved = decisions.filter(
+          (record) => record.activity.status === 'approved',
+        )
+        const reviewDays = decisions.map(({ application, activity }) =>
+          Math.max(
+            0,
+            (new Date(activity.at).getTime() -
+              new Date(application.submittedAt).getTime()) /
+              86_400_000,
+          ),
+        )
+        return {
+          decisions: decisions.length,
+          approvalRate: decisions.length
+            ? Math.round((approved.length / decisions.length) * 100)
+            : null,
+          assignmentRate: approved.length
+            ? Math.round(
+                (approved.filter((record) => record.application.assignment)
+                  .length /
+                  approved.length) *
+                  100,
+              )
+            : null,
+          averageReviewDays: reviewDays.length
+            ? Math.round(
+                (reviewDays.reduce((total, days) => total + days, 0) /
+                  reviewDays.length) *
+                  10,
+              ) / 10
+            : null,
+        }
+      }
+      const workflow = [
+        { label: 'Submitted', count: currentApplications.length },
+        {
+          label: 'Review started',
+          count: currentApplications.filter(
+            (application) => application.history.length > 1,
+          ).length,
+        },
+        {
+          label: 'Decision recorded',
+          count: currentApplications.filter((application) =>
+            isClosed(application.status),
+          ).length,
+        },
+        {
+          label: 'Greyhound assigned',
+          count: currentApplications.filter(
+            (application) => application.assignment,
+          ).length,
+        },
+      ]
+      const dayLabel = new Intl.DateTimeFormat('en-AU', { weekday: 'short' })
+      const shortLabel = new Intl.DateTimeFormat('en-AU', {
+        day: 'numeric',
+        month: 'short',
+      })
+      const monthLabel = new Intl.DateTimeFormat('en-AU', {
+        month: 'short',
+        year: 'numeric',
+      })
+      let decisionTrend: ReportingData['decisionTrend']
+      if (range === 'all') {
+        const months = new Map<string, number>()
+        decisionRecords.forEach((record) => {
+          const date = new Date(record.activity.at)
+          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+          months.set(key, (months.get(key) || 0) + 1)
+        })
+        decisionTrend = [...months.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, count]) => ({
+            label: monthLabel.format(new Date(`${key}-01T00:00:00`)),
+            count,
+          }))
+        if (!decisionTrend.length)
+          decisionTrend = [{ label: monthLabel.format(now), count: 0 }]
+      } else {
+        const bucketLength = range === '7d' ? 1 : 7
+        const bucketCount = range === '7d' ? 7 : 5
+        decisionTrend = Array.from({ length: bucketCount }, (_, index) => {
+          const start = new Date(currentStart)
+          start.setDate(start.getDate() + index * bucketLength)
+          const end = new Date(start)
+          end.setDate(end.getDate() + bucketLength)
+          return {
+            label:
+              range === '7d'
+                ? dayLabel.format(start)
+                : shortLabel.format(start),
+            count: currentDecisions.filter((record) => {
+              const date = new Date(record.activity.at)
+              return date >= start && date < end && date <= now
+            }).length,
+          }
+        })
+      }
+      return {
+        range,
+        performance: calculatePerformance(currentDecisions),
+        previousPerformance:
+          range === 'all' ? null : calculatePerformance(previousDecisions),
+        decisionTrend,
+        workflow,
+        applicationTypes: ['Adoption', 'Foster'].map((label) => ({
+          label,
+          count: currentApplications.filter(
+            (application) => application.form.applicationType === label,
+          ).length,
+        })),
+      }
+    },
     async decide(
       id: string,
       decision: Decision,
       note: string,
       revision: number,
+      _applicantVisible = false,
     ) {
       await pause()
       const user = requireStaff()
@@ -297,140 +581,84 @@ export function createStaffApi(
       save(STORAGE_KEY, items)
       return next
     },
-  }
-}
-const HTTP_SESSION_KEY = 'gap.staff.http-session.v1'
-
-export function createHttpStaffApi(baseUrl: string, storage: DataStore) {
-  const root = baseUrl.replace(/\/$/, '')
-  function readSession(): { token: string; user: StaffUser } | null {
-    try {
-      const value = storage.getItem(HTTP_SESSION_KEY)
-      return value ? JSON.parse(value) : null
-    } catch {
-      return null
-    }
-  }
-  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-    const current = readSession()
-    const response = await fetch(`${root}${path}`, {
-      ...init,
-      headers: {
-        ...(init.body ? { 'content-type': 'application/json' } : {}),
-        ...(current ? { authorization: `Bearer ${current.token}` } : {}),
-        ...init.headers,
-      },
-    })
-    const body = response.status === 204 ? null : await response.json()
-    if (!response.ok) {
-      const code = body?.error?.code || 'REQUEST_FAILED'
-      throw new ApiError(
-        body?.error?.message || 'The server could not complete this request.',
-        response.status === 401 ? 'UNAUTHENTICATED' : code,
+    async assignGreyhound(
+      applicationId: string,
+      greyhoundId: string,
+      revision: number,
+      _details: {startDate?:string;endDate?:string;note?:string} = {},
+    ) {
+      await pause()
+      const user = requireStaff()
+      const items = records()
+      const index = items.findIndex(
+        (application) => application.id === applicationId,
       )
-    }
-    return body as T
-  }
-  type IntegratedApplication = {
-    id: string
-    applicantName: string
-    email: string
-    phone?: string
-    location?: { addressLine1?: string; addressLine2?: string; suburb?: string; state?: string; postcode?: string }
-    status: string
-    applicationType?: string
-    submittedAt?: string
-    updatedAt?: string
-    decisionAt?: string
-    rejectionReason?: string
-    staffNotes?: string
-    details?: Record<string, unknown>
-  }
-  const statusMap: Record<string, Status> = {
-    submitted: 'pending', under_review: 'in_review', information_required: 'more_information',
-    approved: 'approved', rejected: 'rejected',
-  }
-  function mapApplication(value: IntegratedApplication): Application {
-    const details = value.details || {}
-    const status = statusMap[value.status] || 'pending'
-    const at = value.submittedAt || value.updatedAt || new Date().toISOString()
-    const finalNote = value.rejectionReason || value.staffNotes
-    return {
-      id: value.id,
-      status,
-      form: {
-        fullName: value.applicantName, dateOfBirth: '', email: value.email, phone: value.phone || '',
-        address: [value.location?.addressLine1, value.location?.addressLine2, value.location?.suburb, value.location?.state, value.location?.postcode].filter(Boolean).join(', '),
-        residenceType: String(details.householdType || ''), housingStatus: String(details.housingStatus || ''),
-        landlordPermission: details.landlordApproval ? 'Yes' : 'No', adultsInHome: String(details.adultsInHome ?? ''),
-        childrenInHome: String(details.childrenInHome ?? ''), secureYard: String(details.yardOrOutdoorArea || ''),
-        applicationType: value.applicationType === 'adoption' ? 'Adoption' : 'Foster',
-        dogExperience: String(details.previousDogExperience || ''), greyhoundExperience: String(details.previousGreyhoundExperience || ''),
-        hasCurrentPets: details.existingPets ? 'Yes' : 'No', currentPetsDetails: String(details.existingPets || ''),
-        confirmAccurate: Boolean(details.termsAccepted && details.privacyConsent),
-      },
-      submittedAt: at, updatedAt: value.updatedAt || value.decisionAt || at, revision: 0,
-      history: [
-        { id: `${value.id}-submitted`, at, status: 'pending', author: value.applicantName, note: 'Application submitted.' },
-        ...(status !== 'pending' ? [{ id: `${value.id}-${status}`, at: value.decisionAt || value.updatedAt || at, status, author: 'GAP staff', note: finalNote || `Application ${statusLabels[status].toLowerCase()}.` }] : []),
-      ],
-    }
-  }
-  const list = async (filters: Filters = {}) => {
-    const query = new URLSearchParams()
-    if (filters.q) query.set('search', filters.q)
-    if (filters.sort) query.set('sort', filters.sort)
-    if (filters.status && filters.status !== 'in_progress') {
-      query.set('status', ({ pending: 'submitted', in_review: 'under_review', more_information: 'information_required' } as Record<string, string>)[filters.status] || filters.status)
-    }
-    query.set('limit', '100')
-    const body = await request<{ applications: IntegratedApplication[] }>(`/api/staff/applications?${query}`)
-    return body.applications.map(mapApplication).filter((application) =>
-      (!filters.type || application.form.applicationType === filters.type) &&
-      (filters.status !== 'in_progress' || ['in_review', 'more_information'].includes(application.status)))
-  }
-  return {
-    session: () => readSession()?.user || null,
-    async login(email: string, password: string) {
-      const body = await request<{ token: string; user: { id: string; fullName: string; role: string; email: string } }>('/api/auth/login', {
-        method: 'POST', body: JSON.stringify({ email, password }),
-      })
-      if (!['staff', 'admin'].includes(body.user.role)) throw new ApiError('Staff access is required.', 'FORBIDDEN')
-      const user = { id: body.user.id, name: body.user.fullName, role: body.user.role, email: body.user.email }
-      storage.setItem(HTTP_SESSION_KEY, JSON.stringify({ token: body.token, user }))
-      return user
-    },
-    logout() { storage.setItem(HTTP_SESSION_KEY, '') },
-    list,
-    async get(id: string) {
-      const body = await request<{ application: IntegratedApplication }>(`/api/staff/applications/${encodeURIComponent(id)}`)
-      return mapApplication(body.application)
-    },
-    async dashboard() {
-      const items = await list()
-      const now = new Date()
-      const ordered = [...items].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
-      return {
-        ...dashboardSummary(items, now), recent: ordered.slice(0, 5),
-        next: [...items].sort((a, b) => a.submittedAt.localeCompare(b.submittedAt)).find((a) => a.status === 'pending' || a.status === 'in_review')?.id,
-        now,
+      if (index === -1)
+        throw new ApiError('This application could not be found.', 'NOT_FOUND')
+      const current = items[index]
+      if (current.revision !== revision)
+        throw new ApiError(
+          'This application has changed. Refresh it before assigning a greyhound.',
+          'CONFLICT',
+        )
+      if (current.status !== 'approved')
+        throw new ApiError(
+          'A greyhound can only be assigned to an approved application.',
+          'NOT_APPROVED',
+        )
+      if (current.assignment)
+        throw new ApiError(
+          'A greyhound has already been assigned to this application.',
+          'ALREADY_ASSIGNED',
+        )
+      const greyhound = greyhoundRecords().find(
+        (candidate) => candidate.id === greyhoundId,
+      )
+      if (!greyhound)
+        throw new ApiError('This greyhound could not be found.', 'NOT_FOUND')
+      const alreadyAssigned = items.some(
+        (application) => application.assignment?.greyhoundId === greyhoundId,
+      )
+      if (greyhound.status !== 'available' || alreadyAssigned)
+        throw new ApiError(
+          'This greyhound is no longer available. Choose another greyhound.',
+          'NOT_AVAILABLE',
+        )
+      const now = clock().toISOString()
+      const assignment = {
+        greyhoundId: greyhound.id,
+        name: greyhound.name,
+        age: greyhound.age,
+        sex: greyhound.sex,
+        assignedAt: now,
+        assignedBy: user.name,
       }
-    },
-    async decide(id: string, decision: Decision, note: string, revision: number) {
-      const path = decision === 'approved' ? 'approve' : decision === 'rejected' ? 'reject' : 'decision'
-      const body = await request<{ application: IntegratedApplication | Application }>(`/api/staff/applications/${encodeURIComponent(id)}/${path}`, {
-        method: path === 'decision' ? 'PATCH' : 'POST', body: JSON.stringify({ decision, note, revision }),
-      })
-      return 'form' in body.application ? body.application : mapApplication(body.application)
+      const next: Application = {
+        ...current,
+        assignment,
+        updatedAt: now,
+        revision: revision + 1,
+        history: [
+          ...current.history,
+          {
+            id: `${applicationId}-assignment-${revision + 1}`,
+            at: now,
+            status: 'approved',
+            author: user.name,
+            label: 'Greyhound assigned',
+            note: `${greyhound.name} was assigned to ${current.form.fullName}.`,
+          },
+        ],
+      }
+      items[index] = next
+      save(STORAGE_KEY, items)
+      return next
     },
   }
 }
-
-const browserStorage: DataStore = {
+const mockStaffApi = createStaffApi({
   getItem: (key) => window.localStorage.getItem(key),
   setItem: (key, value) => window.localStorage.setItem(key, value),
-}
-export const staffApi = import.meta.env.VITE_API_URL
-  ? createHttpStaffApi(import.meta.env.VITE_API_URL, browserStorage)
-  : createStaffApi(browserStorage)
+})
+export const staffApi = useServerApi ? serverStaffApi : mockStaffApi
 export type DashboardData = Awaited<ReturnType<typeof staffApi.dashboard>>

@@ -44,6 +44,10 @@ function validatePersonalDetails(form: ApplicationForm): ApplicationErrors {
   errors.email = required(form.email, 'Email address is required.')
   errors.phone = required(form.phone, 'Phone number is required.')
   errors.address = required(form.address, 'Address is required.')
+  errors.suburb = required(form.suburb, 'Suburb is required.')
+  errors.state = required(form.state, 'State is required.')
+  if (!/^\d{4}$/.test(form.postcode || ''))
+    errors.postcode = 'Enter a four-digit postcode.'
 
   if (!errors.dateOfBirth) {
     const dateOfBirth = parseDateOfBirth(form.dateOfBirth)
@@ -133,13 +137,35 @@ function validatePetExperience(form: ApplicationForm): ApplicationErrors {
     )
   }
 
+  for (const field of [
+    'preferredFosteringPeriod',
+    'availability',
+    'transportAvailability',
+    'reasonForApplying',
+    'emergencyContactName',
+    'emergencyContactPhone',
+  ] as const)
+    errors[field] = required(form[field], 'This field is required.')
+  if (
+    form.emergencyContactPhone &&
+    form.emergencyContactPhone.replace(/\D/g, '').length < 7
+  )
+    errors.emergencyContactPhone = 'Enter a valid phone number.'
   return errors
 }
 
 function validateReview(form: ApplicationForm): ApplicationErrors {
-  return form.confirmAccurate
-    ? {}
-    : { confirmAccurate: 'Please confirm your details before submitting.' }
+  return {
+    confirmAccurate: form.confirmAccurate
+      ? undefined
+      : 'Please confirm your details before submitting.',
+    termsAccepted: form.termsAccepted
+      ? undefined
+      : 'Accept the terms to submit.',
+    privacyConsent: form.privacyConsent
+      ? undefined
+      : 'Consent is required to submit.',
+  }
 }
 
 const STEP_VALIDATORS: StepValidator[] = [

@@ -5,16 +5,21 @@ import dotenv from 'dotenv'
 
 dotenv.config({ quiet: true })
 
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const projectRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+)
 
 function resolveProjectPath(value, fallback) {
   const selectedPath = value || fallback
+  if (selectedPath === ':memory:') return selectedPath
   return path.isAbsolute(selectedPath)
     ? selectedPath
     : path.resolve(projectRoot, selectedPath)
 }
 
-const jwtSecret = process.env.JWT_SECRET || 'development-only-change-before-production'
+const jwtSecret =
+  process.env.JWT_SECRET || 'development-only-change-before-production'
 
 if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET must be set in production.')
@@ -22,7 +27,10 @@ if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
 
 export const config = {
   appOrigin: process.env.APP_ORIGIN || 'http://localhost:5173',
-  dbFile: resolveProjectPath(process.env.GAPS_DB_FILE, 'server/data/gaps.sqlite'),
+  dbFile: resolveProjectPath(
+    process.env.GAPS_DB_FILE,
+    'server/data/gaps.sqlite',
+  ),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1h',
   jwtSecret,
   passwordSaltRounds: Number(process.env.PASSWORD_SALT_ROUNDS || 12),
@@ -31,4 +39,69 @@ export const config = {
     process.env.GAPS_SCHEMA_FILE,
     'server/database/schema.sql',
   ),
+  production: process.env.NODE_ENV === 'production',
+  timezone: process.env.APP_TIMEZONE || 'Australia/Sydney',
+  backupEnabled: process.env.BACKUP_ENABLED !== 'false',
+  backupDir: resolveProjectPath(process.env.BACKUP_DIR, 'server/backups'),
+  trustProxy: Number(process.env.TRUST_PROXY_HOPS || 0),
+  idleTimeoutMs: 30 * 60 * 1000,
+  demoStaffEnabled:
+    process.env.DEMO_STAFF_ENABLED !== 'false' &&
+    process.env.NODE_ENV !== 'production',
+  demoStaffPassword: process.env.DEMO_STAFF_PASSWORD || 'Greyhound2026!',
+  emailMode:
+    process.env.EMAIL_MODE || (process.env.SMTP_HOST ? 'smtp' : 'preview'),
+  emailFrom: process.env.EMAIL_FROM || 'GAP <gap@example.com>',
+  smtpHost: process.env.SMTP_HOST,
+  smtpPort: Number(process.env.SMTP_PORT || 587),
+  smtpSecure: process.env.SMTP_SECURE === 'true',
+  smtpUser: process.env.SMTP_USER,
+  smtpPassword: process.env.SMTP_PASSWORD,
+  microsoftTenantId: process.env.MICROSOFT_TENANT_ID,
+  microsoftClientId: process.env.MICROSOFT_CLIENT_ID,
+  microsoftClientSecret: process.env.MICROSOFT_CLIENT_SECRET,
+  microsoftRedirectUri:
+    process.env.MICROSOFT_REDIRECT_URI ||
+    'http://localhost:4000/api/auth/microsoft/callback',
+  microsoftStaffIds: (process.env.MICROSOFT_STAFF_OBJECT_IDS || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean),
+  microsoftAdminIds: (process.env.MICROSOFT_ADMIN_OBJECT_IDS || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean),
+  salesforceLoginUrl: process.env.SALESFORCE_LOGIN_URL,
+  salesforceClientId: process.env.SALESFORCE_CLIENT_ID,
+  salesforceClientSecret: process.env.SALESFORCE_CLIENT_SECRET,
+  salesforceApiVersion: process.env.SALESFORCE_API_VERSION || 'v65.0',
+  salesforceObject: process.env.SALESFORCE_GREYHOUND_OBJECT,
+  salesforceFieldMap: process.env.SALESFORCE_FIELD_MAP || '',
 }
+
+if (
+  config.production &&
+  (config.emailMode !== 'smtp' ||
+    !config.smtpHost ||
+    !config.appOrigin.startsWith('https://'))
+) {
+  throw new Error(
+    'Production requires HTTPS APP_ORIGIN and configured SMTP email delivery.',
+  )
+}
+if (
+  config.production &&
+  (config.jwtSecret.length < 32 ||
+    config.jwtSecret.includes('replace-with') ||
+    config.jwtSecret.includes('development-only'))
+)
+  throw new Error(
+    'Use a random JWT_SECRET of at least 32 characters in production.',
+  )
+new Intl.DateTimeFormat('en-CA', { timeZone: config.timezone })
+if (
+  !Number.isInteger(config.trustProxy) ||
+  config.trustProxy < 0 ||
+  config.trustProxy > 10
+)
+  throw new Error('TRUST_PROXY_HOPS must be an integer from 0 to 10.')

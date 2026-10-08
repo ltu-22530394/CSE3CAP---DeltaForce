@@ -13,6 +13,8 @@ const INITIAL_VALUES: RegistrationValues = {
   email: '',
   password: '',
   confirmPassword: '',
+  termsAccepted: false,
+  privacyConsent: false,
 }
 
 export function RegisterForm(): ReactElement {
@@ -40,11 +42,13 @@ export function RegisterForm(): ReactElement {
 
     try {
       setSubmitting(true)
-      await register(values)
-      navigate('/login', {
+      const account = await register(values)
+      navigate('/applicant/login', {
         replace: true,
         state: {
-          registrationMessage: 'Registration successful. You can now log in.',
+          registrationMessage:
+            'Registration successful. Verify your email address before logging in.',
+          verificationUrl: account.verificationUrl,
         },
       })
     } catch (error) {
@@ -109,13 +113,49 @@ export function RegisterForm(): ReactElement {
           error={errors.confirmPassword}
           onChange={updateField}
         />
-        <button className="primary-button" type="submit" disabled={submitting}>
+        <label className="confirmation-field">
+          <input
+            type="checkbox"
+            required
+            checked={Boolean(values.termsAccepted)}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                termsAccepted: event.target.checked,
+              }))
+            }
+          />
+          <span>
+            I accept the <Link to="/privacy">terms of use</Link>.
+          </span>
+        </label>
+        <label className="confirmation-field">
+          <input
+            type="checkbox"
+            required
+            checked={Boolean(values.privacyConsent)}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                privacyConsent: event.target.checked,
+              }))
+            }
+          />
+          <span>I consent to the use of my details for my application.</span>
+        </label>
+        <button
+          className="primary-button"
+          type="submit"
+          disabled={
+            submitting || !values.termsAccepted || !values.privacyConsent
+          }
+        >
           {submitting ? 'Creating account…' : 'Register'}
         </button>
       </form>
 
       <p className="auth-panel__switch">
-        Already have an account? <Link to="/login">Login here</Link>
+        Already have an account? <Link to="/applicant/login">Login here</Link>
       </p>
     </section>
   )

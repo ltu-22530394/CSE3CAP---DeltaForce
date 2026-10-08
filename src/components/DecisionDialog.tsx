@@ -45,6 +45,7 @@ export function DecisionDialog({
   const dialog = useRef<HTMLDialogElement>(null)
   const noteRef = useRef<HTMLTextAreaElement>(null)
   const [note, setNote] = useState('')
+  const [applicantVisible, setApplicantVisible] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const submitting = useRef(false)
@@ -75,6 +76,7 @@ export function DecisionDialog({
         decision,
         note,
         application.revision,
+        applicantVisible,
       )
       complete(next)
     } catch (e) {
@@ -160,6 +162,17 @@ export function DecisionDialog({
           </span>
           <span>{note.length}/2,000</span>
         </div>
+        {decision !== 'more_information' && (
+          <label className="confirmation-field">
+            <input
+              type="checkbox"
+              checked={applicantVisible}
+              onChange={(event) => setApplicantVisible(event.target.checked)}
+              disabled={saving}
+            />
+            <span>Share this note with the applicant</span>
+          </label>
+        )}
         {error && (
           <p id="decision-error" className="field-error" role="alert">
             {error}

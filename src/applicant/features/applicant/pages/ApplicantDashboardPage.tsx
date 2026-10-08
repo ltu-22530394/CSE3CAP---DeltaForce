@@ -8,6 +8,9 @@ import { ApplicantPortalShell } from '../components/ApplicantPortalShell'
 import { applicationStatusLabel } from '../applicationModel'
 import type { StoredApplication } from '../applicationModel'
 import { applicationService } from '../applicationService'
+import { apiRequest, useServerApi } from '../../../../api/http'
+import { Send, ExternalLink } from 'lucide-react'
+import type { PublicSettings } from '../../../../api/management'
 
 interface DashboardLocationState {
   applicationMessage?: string
@@ -23,7 +26,10 @@ function formatDate(value?: string): string {
 }
 
 function nextStepText(application?: StoredApplication): string {
-  if (!application) return 'Create your first foster or adoption application.'
+  if (!application) return 'Create your first foster application.'
+  if (application.status === 'withdrawn') return 'You have withdrawn this application.'
+  if (application.status === 'inactive') return 'Your foster carer application is inactive. Contact GAP to discuss returning.'
+  if (application.editable) return 'GAP has permitted corrections. Review and resubmit your application.'
   if (application.status === 'approved')
     return 'Your application has been approved. The GAP team will advise you on the next steps.'
   if (application.status === 'rejected')
@@ -46,13 +52,31 @@ export function ApplicantDashboardPage(): ReactElement | null {
   const [applications, setApplications] = useState<StoredApplication[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [revision, setRevision] = useState(0)
+  const [resources, setResources] = useState<
+    { id: string; title: string; description: string; url: string }[]
+  >([])
+  const [reply, setReply] = useState('')
+  const [replying, setReplying] = useState(false)
+  const [settings,setSettings] = useState<PublicSettings | null>(null)
+  useEffect(() => { void apiRequest<{settings:PublicSettings}>('/portal/public').then(result=>setSettings(result.settings)).catch(()=>{}) }, [])
   useEffect(() => {
     const refresh = (event: StorageEvent) => {
       if (event.key === 'gap.staff.records.v1')
         setRevision((value) => value + 1)
     }
     window.addEventListener('storage', refresh)
-    return () => window.removeEventListener('storage', refresh)
+    const update = () => setRevision((value) => value + 1)
+    window.addEventListener('focus', update)
+    const timer = useServerApi
+      ? window.setInterval(() => {
+          if (!document.hidden) update()
+        }, 15000)
+      : undefined
+    return () => {
+      window.removeEventListener('storage', refresh)
+      window.removeEventListener('focus', update)
+      window.clearInterval(timer)
+    }
   }, [])
   const [error, setError] = useState('')
 
@@ -64,6 +88,19 @@ export function ApplicantDashboardPage(): ReactElement | null {
       .list(user.id)
       .then((items) => {
         if (isActive) setApplications(items)
+        if (useServerApi && items.some((item) => item.status === 'approved'))
+          void apiRequest<{
+            resources: {
+              id: string
+              title: string
+              description: string
+              url: string
+            }[]
+          }>('/portal/resources')
+            .then((result) => {
+              if (isActive) setResources(result.resources)
+            })
+            .catch(() => {})
       })
       .catch(() => {
         if (isActive)
@@ -86,9 +123,42 @@ export function ApplicantDashboardPage(): ReactElement | null {
     ? `/applications/${latestApplication.id}`
     : '/applications/new'
   const applicationAction =
-    latestApplication?.status !== 'draft'
+    latestApplication?.status !== 'draft' && !latestApplication?.editable
       ? 'View Application'
       : 'Edit Application'
+  const allocation = applications.find((item) => item.assignment)?.assignment
+  const informationRequired = applications.find(
+    (item) => item.status === 'more_information',
+  )
+  async function sendReply(event: React.FormEvent) {
+    event.preventDefault()
+    if (!informationRequired) return
+    setReplying(true)
+    setError('')
+    try {
+      await apiRequest(
+        `/portal/applications/${informationRequired.id}/information`,
+        { text: reply },
+      )
+      setReply('')
+      setRevision((value) => value + 1)
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : 'Your reply could not be sent.',
+      )
+    } finally {
+      setReplying(false)
+    }
+  }
+  async function withdraw(id:string) {
+    if (!window.confirm('Withdraw this foster application?')) return
+    setReplying(true);setError('')
+    try { await apiRequest(`/portal/applications/${id}/withdraw`,{});setRevision(value=>value+1) }
+    catch(reason){setError(reason instanceof Error?reason.message:'The application could not be withdrawn.')}
+    finally{setReplying(false)}
+  }
 
   return (
     <ApplicantPortalShell>
@@ -113,6 +183,83 @@ export function ApplicantDashboardPage(): ReactElement | null {
 
         <div className="applicant-dashboard-grid">
           <div className="applicant-dashboard-main">
+            {allocation && (
+              <section className="carer-section">
+                <p className="eyebrow">Your placement</p>
+                <h2>{allocation.name}</h2>
+                {allocation.photoUrl && <img className="allocated-greyhound-photo" src={allocation.photoUrl} alt={allocation.name} />}
+                <p>
+                  {allocation.age} years / {allocation.sex}
+                  {allocation.colour ? ` / ${allocation.colour}` : ''}
+                </p>
+                <dl>
+                  {allocation.feedingInformation && <div><dt>Feeding information</dt><dd>{allocation.feedingInformation}</dd></div>}
+                  <div>
+                    <dt>Care instructions</dt>
+                    <dd>
+                      {allocation.careInstructions ||
+                        'GAP staff will provide your greyhound care instructions.'}
+                    </dd>
+                  </div>
+                  {allocation.behaviourNotes && (
+                    <div>
+                      <dt>Behaviour notes</dt>
+                      <dd>{allocation.behaviourNotes}</dd>
+                    </div>
+                  )}
+                  {allocation.medicalNotes && (
+                    <div>
+                      <dt>Relevant care and safety</dt>
+                      <dd>{allocation.medicalNotes}</dd>
+                    </div>
+                  )}
+                </dl>
+                <p>Contact your GAP coordinator for placement support.</p>
+                {(settings?.contactEmail || settings?.contactPhone) && <p>{settings.contactEmail} {settings.contactPhone}</p>}
+              </section>
+            )}
+            {informationRequired && (
+              <section className="carer-section">
+                <h2>Further information requested</h2>
+                <p>{informationRequired.reviewNote}</p>
+                <form
+                  className="information-reply"
+                  onSubmit={(event) => void sendReply(event)}
+                >
+                  <label htmlFor="information-reply">Your response</label>
+                  <textarea
+                    id="information-reply"
+                    minLength={10}
+                    maxLength={2000}
+                    required
+                    value={reply}
+                    onChange={(event) => setReply(event.target.value)}
+                  />
+                  <button className="primary-button" disabled={replying}>
+                    <Send size={16} />
+                    {replying ? 'Sending...' : 'Send response'}
+                  </button>
+                </form>
+              </section>
+            )}
+            {applications.some((item) => item.status === 'approved') && (
+              <section className="carer-section">
+                <h2>Care resources</h2>
+                {!resources.length && (
+                  <p>Your coordinator will provide approved care resources.</p>
+                )}
+                {resources.map((resource) => (
+                  <article className="resource-row" key={resource.id}>
+                    <div>
+                      <a href={resource.url} target="_blank" rel="noreferrer">
+                        {resource.title} <ExternalLink size={14} />
+                      </a>
+                      <p>{resource.description}</p>
+                    </div>
+                  </article>
+                ))}
+              </section>
+            )}
             <section
               className="current-application"
               aria-labelledby="current-application-title"
@@ -136,6 +283,8 @@ export function ApplicantDashboardPage(): ReactElement | null {
               ) : latestApplication ? (
                 <>
                   <div className="application-details">
+                    <div><span>Application ID</span><strong>{latestApplication.id}</strong></div>
+                    <div><span>Submitted</span><strong>{latestApplication.submittedAt ? formatDate(latestApplication.submittedAt) : 'Not submitted'}</strong></div>
                     <div>
                       <span>Application type</span>
                       <strong>
@@ -149,6 +298,7 @@ export function ApplicantDashboardPage(): ReactElement | null {
                       <strong>{formatDate(latestApplication.updatedAt)}</strong>
                     </div>
                   </div>
+                  {['submitted','in_review','more_information'].includes(latestApplication.status) && <button type="button" className="text-action" disabled={replying} onClick={()=>void withdraw(latestApplication.id)}>Withdraw application</button>}
                   <div className="next-step-panel">
                     <div>
                       <span>Next step</span>
@@ -163,7 +313,7 @@ export function ApplicantDashboardPage(): ReactElement | null {
                 <div className="current-application__empty">
                   <h3>No application started</h3>
                   <p>
-                    Start an adoption or foster application when you are ready.
+                    Start a foster application when you are ready.
                     You can save it and return at any time.
                   </p>
                   <Link className="text-action" to={applicationPath}>
@@ -212,6 +362,22 @@ export function ApplicantDashboardPage(): ReactElement | null {
           </div>
 
           <aside className="applicant-dashboard-aside">
+            <figure className="applicant-home-photo">
+              <img
+                src="https://images.unsplash.com/photo-1754702431026-a42a5bdc9ef1?auto=format&fit=crop&w=900&q=82"
+                alt="A brindle greyhound resting comfortably outdoors"
+              />
+              <figcaption>
+                Photo by{' '}
+                <a
+                  href="https://unsplash.com/photos/a-brindle-greyhound-rests-on-a-red-blanket-r4_VhphM61M?utm_source=gap_portal&utm_medium=referral"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Derek Otway / Unsplash
+                </a>
+              </figcaption>
+            </figure>
             <section
               className="application-process"
               aria-labelledby="application-process-title"
@@ -244,7 +410,6 @@ export function ApplicantDashboardPage(): ReactElement | null {
                 </li>
               </ol>
             </section>
-
           </aside>
         </div>
       </main>

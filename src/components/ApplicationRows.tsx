@@ -23,7 +23,7 @@ export function ApplicationRows({
       {!compact && (
         <div className="application-list-head" aria-hidden="true">
           <span>Applicant</span>
-          <span>Type</span>
+          <span>Assigned / approved</span>
           <span>Submitted</span>
           <span>Status</span>
           <span />
@@ -40,10 +40,10 @@ export function ApplicationRows({
             <span className="avatar">{initials(a.form.fullName)}</span>
             <span>
               {a.form.fullName}
-              {!compact && <small>{a.id}</small>}
+              {!compact && <><small>{a.id}</small><small>{a.form.email}</small></>}
             </span>
           </span>
-          <span className="application-type">{a.form.applicationType}</span>
+          <span className="application-type">{a.assignedStaffName || 'Unassigned'}<small>{a.approvalDate ? shortDate(a.approvalDate) : 'Not approved'}</small></span>
           <time className="application-date" dateTime={a.submittedAt}>
             {shortDate(a.submittedAt)}
           </time>

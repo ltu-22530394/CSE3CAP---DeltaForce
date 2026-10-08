@@ -1,4 +1,5 @@
 import type { Application } from '../../../api/model'
+import { apiRequest, useServerApi } from '../../../api/http'
 import type {
   ApplicationStatus,
   ApplicationWriteInput,
@@ -106,7 +107,7 @@ function upsertMockApplication({
   return application
 }
 
-export const applicationService: ApplicationService = {
+const mockApplicationService: ApplicationService = {
   async list(applicantId: string) {
     return newestFirst(
       readMockApplications().filter(
@@ -139,3 +140,37 @@ export const applicationService: ApplicationService = {
     })
   },
 }
+export const applicationService: ApplicationService = useServerApi
+  ? {
+      async list() {
+        return (
+          await apiRequest<{ applications: StoredApplication[] }>(
+            '/portal/applications',
+          )
+        ).applications
+      },
+      async get(id) {
+        return (
+          await apiRequest<{ application: StoredApplication }>(
+            '/portal/applications/' + encodeURIComponent(id),
+          )
+        ).application
+      },
+      async saveDraft(application) {
+        return (
+          await apiRequest<{ application: StoredApplication }>(
+            '/portal/applications',
+            application,
+          )
+        ).application
+      },
+      async submit(application) {
+        return (
+          await apiRequest<{ application: StoredApplication }>(
+            '/portal/applications',
+            { ...application, submit: true },
+          )
+        ).application
+      },
+    }
+  : mockApplicationService

@@ -4,3 +4,8 @@ coverage/
 .DS_Store
 *.tar.gz
 *.zip
+server/data/
+server/backups/
+test-results/
+playwright-report/
+.env

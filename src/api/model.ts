@@ -4,21 +4,132 @@ export const statusLabels = {
   more_information: 'More information',
   approved: 'Approved',
   rejected: 'Rejected',
+  withdrawn: 'Withdrawn',
+  inactive: 'Inactive',
 } as const
 export type Status = keyof typeof statusLabels
 export type ApplicationType = 'Adoption' | 'Foster'
 export type Decision =
-  | 'approved'
-  | 'rejected'
-  | 'more_information'
-  | 'in_review'
+  'approved' | 'rejected' | 'more_information' | 'in_review'
 export interface StaffUser {
   id: string
   name: string
   role: string
   email: string
 }
+export const greyhoundStatusLabels = {
+  available: 'Available',
+  medical_hold: 'Medical hold',
+  assigned: 'Allocated',
+  imported: 'Imported',
+  pending_allocation: 'Pending allocation',
+  returned: 'Returned',
+  adopted: 'Adopted',
+  unavailable: 'Unavailable',
+  inactive: 'Inactive',
+} as const
+export type GreyhoundStatus = keyof typeof greyhoundStatusLabels
+export type GreyhoundSex = 'Female' | 'Male' | 'Unknown'
+export type GreyhoundEditableStatus = Exclude<GreyhoundStatus, 'assigned'>
+export interface GreyhoundDetails {
+  identifier?: string
+  salesforceId?: string
+  registrationNumber?: string
+  dateOfBirth?: string
+  colour?: string
+  location?: string
+  careInstructions?: string
+  feedingInformation?: string
+  behaviourNotes?: string
+  medicalNotes?: string
+  specialRequirements?: string
+  photoUrl?: string
+  compatibleWithChildren?: number | null
+  compatibleWithCats?: number | null
+  compatibleWithSmallDogs?: number | null
+  compatibleWithOtherAnimals?: number | null
+}
+export interface Greyhound extends GreyhoundDetails {
+  id: string
+  name: string
+  age: number
+  sex: GreyhoundSex
+  status: GreyhoundStatus
+  identifier?: string
+  salesforceId?: string
+  registrationNumber?: string
+}
+export interface GreyhoundInput extends GreyhoundDetails {
+  id?: string
+  name: string
+  age: number
+  sex: GreyhoundSex
+  status: GreyhoundStatus
+}
+export interface GreyhoundFilters {
+  q?: string
+  status?: string
+  sort?: string
+  location?: string
+  colour?: string
+  minAge?: string
+  maxAge?: string
+  compatibility?: string
+  allocated?: string
+}
+export type ReportRange = '7d' | '30d' | 'all'
+export interface ReportItem {
+  label: string
+  count: number
+}
+export interface ReportPerformance {
+  decisions: number
+  approvalRate: number | null
+  assignmentRate: number | null
+  averageReviewDays: number | null
+}
+export interface ReportingData {
+  range: ReportRange
+  performance: ReportPerformance
+  previousPerformance: ReportPerformance | null
+  decisionTrend: ReportItem[]
+  workflow: ReportItem[]
+  applicationTypes: ReportItem[]
+}
+export interface GreyhoundAssignment {
+  allocationId?: string
+  greyhoundId: string
+  name: string
+  age: number
+  sex: GreyhoundSex
+  assignedAt: string
+  assignedBy: string
+  colour?: string
+  careInstructions?: string
+  behaviourNotes?: string
+  medicalNotes?: string
+  feedingInformation?: string
+  photoUrl?: string
+  internalNotes?: string
+  startDate?: string
+  endDate?: string
+}
 export interface ApplicationForm {
+  suburb?: string
+  state?: string
+  postcode?: string
+  fenceInformation?: string
+  yardInformation?: string
+  householdDetails?: string
+  preferredGreyhoundCharacteristics?: string
+  preferredFosteringPeriod?: string
+  availability?: string
+  transportAvailability?: string
+  reasonForApplying?: string
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+  termsAccepted?: boolean
+  privacyConsent?: boolean
   fullName: string
   dateOfBirth: string
   email: string
@@ -43,6 +154,7 @@ export interface Activity {
   status: Status
   author: string
   note: string
+  label?: string
 }
 export interface Application {
   id: string
@@ -52,15 +164,33 @@ export interface Application {
   updatedAt: string
   revision: number
   history: Activity[]
+  assignment?: GreyhoundAssignment
+  assignedStaffId?: string
+  assignedStaffName?: string
+  approvalDate?: string
+  editable?: boolean
+  currentContact?: {
+    fullName?: string
+    phone?: string
+    address?: string
+    suburb?: string
+    state?: string
+    postcode?: string
+  }
 }
 export interface Filters {
   q?: string
   status?: string
   type?: string
   sort?: string
+  from?: string
+  to?: string
+  location?: string
+  staff?: string
+  allocated?: string
 }
 export const isClosed = (status: Status) =>
-  status === 'approved' || status === 'rejected'
+  ['approved', 'rejected', 'withdrawn', 'inactive'].includes(status)
 export function initials(name: string) {
   return name
     .trim()

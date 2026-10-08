@@ -36,10 +36,10 @@
 }
 
 .applicant-surface .application-panel {
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: var(--color-surface);
-  box-shadow: var(--shadow-subtle);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .applicant-surface .dashboard-card {
@@ -230,7 +230,7 @@
 }
 
 .applicant-surface .application-panel {
-  padding: clamp(24px, 4vw, 40px);
+  padding: clamp(8px, 1.5vw, 18px) 0 0;
 }
 
 .applicant-surface .application-panel__heading {
@@ -267,6 +267,90 @@
 
 .applicant-surface .form-field--wide {
   grid-column: 1 / -1;
+}
+
+.applicant-surface .form-field__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.applicant-surface .field-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.applicant-surface .field-help__trigger {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--color-brand);
+  border-radius: 50%;
+  padding: 0;
+  color: var(--color-brand-dark);
+  background: var(--color-surface);
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1;
+  cursor: help;
+}
+
+.applicant-surface .field-help__trigger:hover,
+.applicant-surface .field-help__trigger:focus-visible,
+.applicant-surface .field-help.is-open .field-help__trigger {
+  color: var(--color-white);
+  background: var(--color-brand);
+}
+
+.applicant-surface .field-help__tooltip {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 10px);
+  z-index: 30;
+  width: min(310px, calc(100vw - 48px));
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.45;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease,
+    visibility 140ms ease;
+}
+
+.applicant-surface .field-help__tooltip span,
+.applicant-surface .field-help__tooltip strong {
+  display: block;
+}
+
+.applicant-surface .field-help__tooltip strong {
+  margin-bottom: 2px;
+  color: var(--color-brand-dark);
+  font-size: 0.76rem;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.applicant-surface .field-help:hover .field-help__tooltip,
+.applicant-surface .field-help:focus-within .field-help__tooltip,
+.applicant-surface .field-help.is-open .field-help__tooltip {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .applicant-surface .form-field select,

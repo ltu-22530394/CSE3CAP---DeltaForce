@@ -4,7 +4,9 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MINIMUM_PASSWORD_LENGTH = 8
 
 export function normalizeEmail(email) {
-  return String(email || '').trim().toLowerCase()
+  return String(email || '')
+    .trim()
+    .toLowerCase()
 }
 
 export function splitFullName(fullName) {
@@ -36,9 +38,20 @@ export function validateRegistration(body) {
   } else if (password.length < MINIMUM_PASSWORD_LENGTH) {
     errors.password = `Password must be at least ${MINIMUM_PASSWORD_LENGTH} characters.`
   }
+  if (Buffer.byteLength(password, 'utf8') > 72)
+    errors.password = 'Password must contain at most 72 UTF-8 bytes.'
+  if (body?.termsAccepted !== true)
+    errors.termsAccepted = 'Terms acceptance is required.'
+  if (body?.privacyConsent !== true)
+    errors.privacyConsent = 'Privacy consent is required.'
 
   if (Object.keys(errors).length > 0) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Registration details are invalid.', errors)
+    throw new ApiError(
+      400,
+      'VALIDATION_ERROR',
+      'Registration details are invalid.',
+      errors,
+    )
   }
 
   return { fullName, email, password, ...splitFullName(fullName) }
@@ -47,6 +60,7 @@ export function validateRegistration(body) {
 export function validateLogin(body) {
   const email = normalizeEmail(body?.email)
   const password = String(body?.password || '')
+  const audience = body?.audience
   const errors = {}
 
   if (!email) {
@@ -55,10 +69,17 @@ export function validateLogin(body) {
     errors.email = 'Enter a valid email address.'
   }
   if (!password) errors.password = 'Password is required.'
+  if (audience !== undefined && !['applicant', 'staff'].includes(audience))
+    errors.audience = 'Select applicant or staff access.'
 
   if (Object.keys(errors).length > 0) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Login details are invalid.', errors)
+    throw new ApiError(
+      400,
+      'VALIDATION_ERROR',
+      'Login details are invalid.',
+      errors,
+    )
   }
 
-  return { email, password }
+  return { email, password, ...(audience === undefined ? {} : { audience }) }
 }

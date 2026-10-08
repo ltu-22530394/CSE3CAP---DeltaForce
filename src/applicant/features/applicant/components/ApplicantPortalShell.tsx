@@ -44,10 +44,32 @@ export function ApplicantPortalShell({
   function handleLogout(): void {
     setIsAccountOpen(false)
     logout()
-    navigate('/login', { replace: true })
+    navigate('/applicant/login', { replace: true })
   }
 
-  if (!user) return null
+  if (!user)
+    return (
+      <div className="applicant-shell">
+        <header className="applicant-header">
+          <Link className="portal-brand" to="/apply">
+            <img
+              className="portal-brand__logo"
+              src="/assets/gap-logo-blue.png"
+              alt="Greyhounds as Pets"
+            />
+            <strong>Greyhounds as Pets</strong>
+          </Link>
+          <Link to="/login">Sign in</Link>
+        </header>
+        <div className="portal-content">
+          {children}
+          <footer className="portal-links">
+            <Link to="/fostering">Fostering information</Link>
+            <Link to="/privacy">Privacy and terms</Link>
+          </footer>
+        </div>
+      </div>
+    )
 
   const initials = user.fullName
     .split(' ')
@@ -67,7 +89,7 @@ export function ApplicantPortalShell({
         >
           <img
             className="portal-brand__logo"
-            src="/assets/gap-logo.png"
+            src="/assets/gap-logo-blue.png"
             alt=""
             aria-hidden="true"
           />
@@ -82,6 +104,7 @@ export function ApplicantPortalShell({
             className={`applicant-account__trigger${isAccountOpen ? ' is-open' : ''}`}
             type="button"
             aria-haspopup="dialog"
+            aria-label={`Account menu for ${user.fullName}`}
             aria-expanded={isAccountOpen}
             aria-controls="applicant-account-dialog"
             onClick={() => setIsAccountOpen((isOpen) => !isOpen)}
@@ -104,6 +127,12 @@ export function ApplicantPortalShell({
               <p className="eyebrow">Account</p>
               <h2 id="applicant-account-dialog-title">{user.fullName}</h2>
               <p className="applicant-account-dialog__email">{user.email}</p>
+              <Link
+                to="/applicant/profile"
+                onClick={() => setIsAccountOpen(false)}
+              >
+                My profile
+              </Link>
               <button
                 className="applicant-account-dialog__logout"
                 type="button"
@@ -115,7 +144,13 @@ export function ApplicantPortalShell({
           )}
         </div>
       </header>
-      <div className="portal-content">{children}</div>
+      <div className="portal-content">
+        {children}
+        <footer className="portal-links">
+          <Link to="/applicant/profile">My profile</Link>
+          <Link to="/privacy">Privacy and terms</Link>
+        </footer>
+      </div>
     </div>
   )
 }

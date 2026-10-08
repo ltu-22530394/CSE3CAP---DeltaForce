@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
 import type { StaffUser } from './api/model'
-import { SESSION_KEY, STORAGE_KEY, staffApi } from './api/staffApi'
+import {
+  GREYHOUNDS_KEY,
+  SESSION_KEY,
+  STORAGE_KEY,
+  staffApi,
+} from './api/staffApi'
 import { StaffShell } from './components/StaffShell'
 import { FeedbackProvider } from './components/Feedback'
 import { ErrorState } from './components/AsyncView'
@@ -15,6 +20,16 @@ import { ApplicationFormPage } from './applicant/features/applicant/pages/Applic
 import { ProtectedRoute } from './applicant/routes/ProtectedRoute'
 import './applicant/styles.css'
 import { ProfilePage } from './pages/ProfilePage'
+import { GreyhoundsPage } from './pages/GreyhoundsPage'
+import { ReportsPage } from './pages/ReportsPage'
+import { AccountActionPage, PrivacyPage } from './pages/AccountActionPage'
+import { IntegrationsPage } from './pages/IntegrationsPage'
+import './styles/integrations.css'
+import './styles/management.css'
+import { AdministrationPage } from './pages/AdministrationPage'
+import { ApplicantProfilePage } from './pages/ApplicantProfilePage'
+import { PublicResourcesPage } from './pages/PublicResourcesPage'
+import { HomePage } from './pages/HomePage'
 function readSession(): { user: StaffUser | null; error: Error | null } {
   try {
     return { user: staffApi.session(), error: null }
@@ -36,6 +51,7 @@ function PortalRoutes() {
       if (e.key === SESSION_KEY || e.key === null) setSession(readSession())
       if (
         e.key === STORAGE_KEY ||
+        e.key === GREYHOUNDS_KEY ||
         e.key === 'gap.mock.applications' ||
         e.key === null
       )
@@ -71,18 +87,83 @@ function PortalRoutes() {
         ) : (
           <Routes>
             <Route
+              path="/fostering"
+              element={
+                <div className="applicant-surface">
+                  <PublicResourcesPage />
+                </div>
+              }
+            />
+            <Route
+              path="/apply"
+              element={
+                <div className="applicant-surface">
+                  <ApplicationFormPage />
+                </div>
+              }
+            />
+            <Route
+              path="/privacy"
+              element={
+                <div className="applicant-surface">
+                  <PrivacyPage />
+                </div>
+              }
+            />
+            <Route
+              path="/verify-email"
+              element={
+                <div className="applicant-surface">
+                  <AccountActionPage />
+                </div>
+              }
+            />
+            <Route
+              path="/forgot-password"
+              element={
+                <div className="applicant-surface">
+                  <AccountActionPage />
+                </div>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <div className="applicant-surface">
+                  <AccountActionPage />
+                </div>
+              }
+            />
+            <Route
               path="/"
               element={
-                <Navigate
-                  to={
-                    session.user
-                      ? '/staff'
-                      : applicant.isAuthenticated
-                        ? '/applicant'
-                        : '/login'
-                  }
-                  replace
-                />
+                <div className="applicant-surface">
+                  <HomePage />
+                </div>
+              }
+            />
+            <Route
+              path="/applicant/login"
+              element={
+                applicant.isAuthenticated ? (
+                  <Navigate to="/applicant" replace />
+                ) : (
+                  <div className="applicant-surface">
+                    <AuthPage audience="applicant" />
+                  </div>
+                )
+              }
+            />
+            <Route
+              path="/staff/login"
+              element={
+                session.user ? (
+                  <Navigate to="/staff" replace />
+                ) : (
+                  <div className="applicant-surface">
+                    <AuthPage audience="staff" />
+                  </div>
+                )
               }
             />
             <Route
@@ -115,6 +196,14 @@ function PortalRoutes() {
             />
             <Route element={<ProtectedRoute />}>
               <Route
+                path="/applicant/profile"
+                element={
+                  <div className="applicant-surface">
+                    <ApplicantProfilePage />
+                  </div>
+                }
+              />
+              <Route
                 path="/applicant"
                 element={
                   <div className="applicant-surface">
@@ -144,10 +233,18 @@ function PortalRoutes() {
                 session.user ? (
                   <StaffShell user={session.user} logout={logout} />
                 ) : (
-                  <Navigate to="/login" replace />
+                  <Navigate to="/staff/login" replace />
                 )
               }
             >
+              <Route
+                path="/staff/administration"
+                element={<AdministrationPage />}
+              />
+              <Route
+                path="/staff/integrations"
+                element={<IntegrationsPage />}
+              />
               <Route
                 path="/staff"
                 element={session.user && <DashboardPage revision={revision} />}
@@ -168,6 +265,16 @@ function PortalRoutes() {
                     changed={changed}
                   />
                 }
+              />
+              <Route
+                path="/staff/greyhounds"
+                element={
+                  <GreyhoundsPage revision={revision} changed={changed} />
+                }
+              />
+              <Route
+                path="/staff/reports"
+                element={<ReportsPage revision={revision} />}
               />
               <Route
                 path="/staff/profile"
@@ -195,7 +302,7 @@ function PortalRoutes() {
 
 export function App() {
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
+    <BrowserRouter>
       <AuthProvider>
         <PortalRoutes />
       </AuthProvider>

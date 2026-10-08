@@ -9,7 +9,7 @@
 .applicant-surface .applicant-shell {
   min-height: 100vh;
   display: block;
-  background: #f8f4f0;
+  background: var(--color-background);
 }
 
 .applicant-surface .applicant-header {
@@ -23,7 +23,7 @@
   align-items: center;
   gap: 28px;
   border-bottom: 1px solid var(--color-border);
-  background: rgba(255, 253, 251, 0.98);
+  background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(10px);
 }
 
@@ -88,7 +88,7 @@
   place-items: center;
   border-radius: 50%;
   color: var(--color-brand-dark);
-  background: #eee6e3;
+  background: var(--color-surface-soft);
   font-size: 0.86rem;
   font-weight: 750;
   letter-spacing: 0.02em;
@@ -118,8 +118,8 @@
   padding: 22px;
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: #fffdfb;
-  box-shadow: 0 18px 45px rgba(62, 35, 42, 0.16);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .applicant-surface .applicant-account-dialog h2 {
@@ -294,7 +294,7 @@
   flex: 0 0 auto;
   padding: 9px 16px;
   border-radius: 6px;
-  background: #fffdfb;
+  background: var(--color-surface);
 }
 
 .applicant-surface .current-application__empty {
@@ -328,6 +328,40 @@
 .applicant-surface .applicant-dashboard-aside {
   border-left: 1px solid var(--color-border);
   padding-left: 32px;
+}
+
+.applicant-surface .applicant-home-photo {
+  position: relative;
+  height: 150px;
+  margin: 0 0 28px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--color-surface-soft);
+}
+
+.applicant-surface .applicant-home-photo img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center 44%;
+}
+
+.applicant-surface .applicant-home-photo figcaption {
+  position: absolute;
+  right: 8px;
+  bottom: 7px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  color: var(--color-white);
+  background: rgba(10, 33, 56, 0.72);
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
+.applicant-surface .applicant-home-photo a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .applicant-surface .application-process ol {
@@ -374,7 +408,7 @@
   color: var(--color-brand);
   font-size: 0.84rem;
   font-weight: 750;
-  background: #fffdfb;
+  background: var(--color-surface);
 }
 
 .applicant-surface .application-process strong,

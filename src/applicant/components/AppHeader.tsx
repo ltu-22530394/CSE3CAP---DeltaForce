@@ -4,18 +4,20 @@ import type { ReactElement } from 'react'
 interface AppHeaderProps {
   portalLabel?: string
   applicantName?: string
+  access?: 'applicant' | 'staff' | 'home'
 }
 
 export function AppHeader({
   portalLabel = 'Greyhound Adoption Program',
   applicantName,
+  access = 'applicant',
 }: AppHeaderProps): ReactElement {
   return (
     <header className="site-header">
       <div className="brand" aria-label="Greyhound Adoption Program">
         <img
           className="brand__logo"
-          src="/assets/gap-logo.png"
+          src="/assets/gap-logo-blue.png"
           alt=""
           aria-hidden="true"
         />
@@ -27,10 +29,19 @@ export function AppHeader({
 
       {applicantName ? (
         <p className="applicant-greeting">Welcome, {applicantName}</p>
+      ) : access !== 'applicant' ? (
+        <nav className="auth-navigation" aria-label="Public navigation">
+          <NavLink
+            className="button-link"
+            to={access === 'home' ? '/fostering' : '/'}
+          >
+            {access === 'home' ? 'Fostering' : 'Home'}
+          </NavLink>
+        </nav>
       ) : (
         <nav className="auth-navigation" aria-label="Applicant access">
           <NavLink
-            to="/login"
+            to="/applicant/login"
             className={({ isActive }) =>
               `button-link ${isActive ? 'button-link--active' : ''}`
             }

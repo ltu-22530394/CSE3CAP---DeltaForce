@@ -113,8 +113,6 @@ CREATE INDEX IF NOT EXISTS idx_applicants_postcode ON applicants(postcode);
 CREATE TABLE IF NOT EXISTS foster_applications (
   id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   applicant_id TEXT NOT NULL,
-  application_type TEXT NOT NULL DEFAULT 'foster'
-    CHECK (application_type IN ('adoption', 'foster')),
   application_status TEXT NOT NULL DEFAULT 'draft'
     CHECK (
       application_status IN (
@@ -135,7 +133,6 @@ CREATE TABLE IF NOT EXISTS foster_applications (
   decided_by_user_id TEXT,
   rejection_reason TEXT,
   staff_notes TEXT,
-  revision INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE,
@@ -338,7 +335,9 @@ CREATE TABLE IF NOT EXISTS notifications (
         'allocation',
         'information_required',
         'rejection',
-        'password_reset'
+        'password_reset',
+        'withdrawal',
+        'weekly_report'
       )
     ),
   subject TEXT NOT NULL,

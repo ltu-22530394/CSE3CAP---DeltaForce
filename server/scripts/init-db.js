@@ -1,5 +1,9 @@
 import { config } from '../config.js'
-import { closeDatabase, getDatabase, initializeDatabase } from '../database/db.js'
+import {
+  closeDatabase,
+  getDatabase,
+  initializeDatabase,
+} from '../database/db.js'
 
 initializeDatabase(getDatabase())
 closeDatabase()

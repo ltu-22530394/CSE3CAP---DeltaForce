@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import type { InputHTMLAttributes, ReactElement } from 'react'
+import { FieldHelp } from './FieldHelp'
 
 interface FormFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   id: string
   label: string
   error?: string
+  helpText?: string
 }
 
 export function FormField({
   id,
   label,
   error,
+  helpText,
   type = 'text',
   ...inputProps
 }: FormFieldProps): ReactElement {
@@ -21,13 +24,26 @@ export function FormField({
 
   return (
     <div className="form-field">
-      <label htmlFor={id}>{label}</label>
+      <div className="form-field__label">
+        <label htmlFor={id}>{label}</label>
+        {helpText && (
+          <FieldHelp
+            id={`${id}-help`}
+            fieldName={label.replace(/\s*\*$/, '')}
+            reason={helpText}
+          />
+        )}
+      </div>
       <div className={isPassword ? 'password-input' : undefined}>
         <input
           id={id}
           type={inputType}
           aria-invalid={Boolean(error)}
-          aria-describedby={error ? errorId : undefined}
+          aria-describedby={
+            [helpText ? `${id}-help` : '', error ? errorId : '']
+              .filter(Boolean)
+              .join(' ') || undefined
+          }
           {...inputProps}
         />
         {isPassword && (

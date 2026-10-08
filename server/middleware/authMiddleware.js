@@ -21,12 +21,16 @@ export function requireAuth(req, _res, next) {
     const user = findPublicUserById(payload.sub)
 
     if (!user) {
-      next(new ApiError(401, 'INVALID_TOKEN', 'Authentication token is invalid.'))
+      next(
+        new ApiError(401, 'INVALID_TOKEN', 'Authentication token is invalid.'),
+      )
       return
     }
 
     if (user.accountStatus !== 'active') {
-      next(new ApiError(403, 'ACCOUNT_NOT_ACTIVE', 'This account is not active.'))
+      next(
+        new ApiError(403, 'ACCOUNT_NOT_ACTIVE', 'This account is not active.'),
+      )
       return
     }
 
@@ -45,7 +49,13 @@ export function requireRole(...allowedRoles) {
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      next(new ApiError(403, 'FORBIDDEN', 'You do not have permission for this action.'))
+      next(
+        new ApiError(
+          403,
+          'FORBIDDEN',
+          'You do not have permission for this action.',
+        ),
+      )
       return
     }
 

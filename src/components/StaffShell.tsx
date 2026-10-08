@@ -4,6 +4,7 @@ import type { StaffUser } from '../api/model'
 import { initials } from '../api/model'
 import { Brand } from './Brand'
 import { Icon } from './Icon'
+import { Settings } from 'lucide-react'
 
 export function StaffShell({
   user,
@@ -125,6 +126,17 @@ export function StaffShell({
           <Brand />
         </NavLink>
         <nav className="nav-list" aria-label="Main navigation">
+          {user.role === 'admin' && <NavLink to="/staff/administration" onClick={() => setNavigationOpen(false)} className={({isActive}) => `nav-item${isActive ? ' selected' : ''}`}><Settings size={20}/><span>Administration</span></NavLink>}
+          <NavLink
+            to="/staff/integrations"
+            onClick={() => setNavigationOpen(false)}
+            className={({ isActive }) =>
+              `nav-item${isActive ? ' selected' : ''}`
+            }
+          >
+            <Icon name="reports" />
+            <span>Integrations & Resources</span>
+          </NavLink>
           <NavLink
             end
             to="/staff"
@@ -145,6 +157,26 @@ export function StaffShell({
           >
             <Icon name="file" />
             <span>Applications</span>
+          </NavLink>
+          <NavLink
+            to="/staff/greyhounds"
+            onClick={() => setNavigationOpen(false)}
+            className={({ isActive }) =>
+              `nav-item${isActive ? ' selected' : ''}`
+            }
+          >
+            <Icon name="greyhound" />
+            <span>Greyhounds</span>
+          </NavLink>
+          <NavLink
+            to="/staff/reports"
+            onClick={() => setNavigationOpen(false)}
+            className={({ isActive }) =>
+              `nav-item${isActive ? ' selected' : ''}`
+            }
+          >
+            <Icon name="reports" />
+            <span>Reports</span>
           </NavLink>
         </nav>
         <div

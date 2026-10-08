@@ -11,6 +11,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { Alert } from '../../../components/Alert'
 import { FormField } from '../../../components/FormField'
+import { FieldHelp } from '../../../components/FieldHelp'
 import { useAuth } from '../../auth/AuthContext'
 import { ApplicantPortalShell } from '../components/ApplicantPortalShell'
 import {
@@ -20,6 +21,7 @@ import {
 } from '../applicationModel'
 import type { ApplicationForm, ApplicationStatus } from '../applicationModel'
 import { applicationService } from '../applicationService'
+import { apiRequest } from '../../../../api/http'
 import {
   hasApplicationErrors,
   validateApplicationStep,
@@ -28,7 +30,16 @@ import {
 import type { ApplicationErrors } from '../applicationValidation'
 
 const STEP_FIELDS: Array<Array<keyof ApplicationForm>> = [
-  ['fullName', 'dateOfBirth', 'email', 'phone', 'address'],
+  [
+    'fullName',
+    'dateOfBirth',
+    'email',
+    'phone',
+    'address',
+    'suburb',
+    'state',
+    'postcode',
+  ],
   [
     'residenceType',
     'housingStatus',
@@ -43,8 +54,14 @@ const STEP_FIELDS: Array<Array<keyof ApplicationForm>> = [
     'greyhoundExperience',
     'hasCurrentPets',
     'currentPetsDetails',
+    'preferredFosteringPeriod',
+    'availability',
+    'transportAvailability',
+    'reasonForApplying',
+    'emergencyContactName',
+    'emergencyContactPhone',
   ],
-  ['confirmAccurate'],
+  ['confirmAccurate', 'termsAccepted', 'privacyConsent'],
 ]
 
 interface FieldErrorProps {
@@ -102,28 +119,42 @@ function SelectField({
   )
 }
 
-interface TextareaFieldProps
-  extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+interface TextareaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   id: string
   label: string
   error?: string
+  helpText?: string
 }
 
 function TextareaField({
   id,
   label,
   error,
+  helpText,
   ...textareaProps
 }: TextareaFieldProps): ReactElement {
   const errorId = `${id}-error`
   return (
     <div className="form-field form-field--wide">
-      <label htmlFor={id}>{label}</label>
+      <div className="form-field__label">
+        <label htmlFor={id}>{label}</label>
+        {helpText && (
+          <FieldHelp
+            id={`${id}-help`}
+            fieldName={label.replace(/\s*\*$/, '')}
+            reason={helpText}
+          />
+        )}
+      </div>
       <textarea
         id={id}
         rows={4}
         aria-invalid={Boolean(error)}
-        aria-describedby={error ? errorId : undefined}
+        aria-describedby={
+          [helpText ? `${id}-help` : '', error ? errorId : '']
+            .filter(Boolean)
+            .join(' ') || undefined
+        }
         {...textareaProps}
       />
       <FieldError id={errorId}>{error}</FieldError>
@@ -183,9 +214,7 @@ type ApplicationChangeEvent = ChangeEvent<
 
 function toDateInputValue(value: string): string {
   const dayFirst = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value)
-  return dayFirst
-    ? `${dayFirst[3]}-${dayFirst[2]}-${dayFirst[1]}`
-    : value
+  return dayFirst ? `${dayFirst[3]}-${dayFirst[2]}-${dayFirst[1]}` : value
 }
 
 interface ApplicationStepProps {
@@ -226,6 +255,7 @@ function PersonalDetailsStep({
         onChange={onChange}
         onClick={(event) => event.currentTarget.showPicker?.()}
         disabled={disabled}
+        helpText="Used to confirm eligibility and support age-appropriate placement decisions."
       />
       <FormField
         id="application-email"
@@ -246,7 +276,7 @@ function PersonalDetailsStep({
         type="tel"
         autoComplete="tel"
         inputMode="tel"
-        placeholder="e.g. +44 20 7946 0958"
+        placeholder="e.g. 0412 345 678"
         maxLength={24}
         value={form.phone}
         error={errors.phone}
@@ -260,6 +290,38 @@ function PersonalDetailsStep({
         autoComplete="street-address"
         value={form.address}
         error={errors.address}
+        onChange={onChange}
+        disabled={disabled}
+        helpText="Used to assess the home environment and plan a suitable greyhound placement."
+      />
+      <FormField
+        id="application-suburb"
+        label="Suburb *"
+        name="suburb"
+        value={form.suburb}
+        error={errors.suburb}
+        onChange={onChange}
+        disabled={disabled}
+      />
+      <SelectField
+        id="application-state"
+        label="State *"
+        name="state"
+        value={form.state}
+        onChange={onChange}
+        disabled={disabled}
+        options={['NSW', 'VIC', 'QLD', 'ACT', 'SA', 'WA', 'TAS', 'NT'].map(
+          (value) => ({ value, label: value }),
+        )}
+      />
+      <FormField
+        id="application-postcode"
+        label="Postcode *"
+        name="postcode"
+        inputMode="numeric"
+        maxLength={4}
+        value={form.postcode}
+        error={errors.postcode}
         onChange={onChange}
         disabled={disabled}
       />
@@ -351,6 +413,9 @@ function HomeEnvironmentStep({
           { value: 'not-applicable', label: 'Not applicable' },
         ]}
       />
+      <TextareaField id="yard-information" name="yardInformation" label="Yard or outdoor area details" value={form.yardInformation} onChange={onChange} disabled={disabled} />
+      <TextareaField id="fence-information" name="fenceInformation" label="Fence height, type and condition" value={form.fenceInformation} onChange={onChange} disabled={disabled} />
+      <TextareaField id="household-details" name="householdDetails" label="Household member details" value={form.householdDetails} onChange={onChange} disabled={disabled} />
     </div>
   )
 }
@@ -370,10 +435,7 @@ function PetExperienceStep({
         error={errors.applicationType}
         onChange={onChange}
         disabled={disabled}
-        options={[
-          { value: 'foster', label: 'Foster a greyhound' },
-          { value: 'adoption', label: 'Adopt a greyhound' },
-        ]}
+        options={[{ value: 'foster', label: 'Foster a greyhound' }]}
       />
       <TextareaField
         id="dog-experience"
@@ -419,6 +481,65 @@ function PetExperienceStep({
           disabled={disabled}
         />
       )}
+      <FormField
+        id="fostering-period"
+        label="Preferred fostering period *"
+        name="preferredFosteringPeriod"
+        value={form.preferredFosteringPeriod}
+        error={errors.preferredFosteringPeriod}
+        onChange={onChange}
+        disabled={disabled}
+      />
+      <TextareaField
+        id="availability"
+        label="Your availability *"
+        name="availability"
+        value={form.availability}
+        error={errors.availability}
+        onChange={onChange}
+        disabled={disabled}
+      />
+      <RadioGroup
+        name="transportAvailability"
+        legend="Can you transport a greyhound? *"
+        value={form.transportAvailability}
+        error={errors.transportAvailability}
+        onChange={onChange}
+        disabled={disabled}
+        options={[
+          { value: 'yes', label: 'Yes' },
+          { value: 'no', label: 'No' },
+        ]}
+      />
+      <TextareaField
+        id="reason-for-applying"
+        label="Why would you like to foster? *"
+        name="reasonForApplying"
+        value={form.reasonForApplying}
+        error={errors.reasonForApplying}
+        onChange={onChange}
+        disabled={disabled}
+      />
+      <FormField
+        id="emergency-contact-name"
+        label="Emergency contact name *"
+        name="emergencyContactName"
+        value={form.emergencyContactName}
+        error={errors.emergencyContactName}
+        onChange={onChange}
+        disabled={disabled}
+      />
+      <TextareaField id="preferred-greyhound" name="preferredGreyhoundCharacteristics" label="Preferred greyhound characteristics" value={form.preferredGreyhoundCharacteristics} onChange={onChange} disabled={disabled} />
+      <FormField
+        id="emergency-contact-phone"
+        label="Emergency contact phone *"
+        name="emergencyContactPhone"
+        type="tel"
+        value={form.emergencyContactPhone}
+        error={errors.emergencyContactPhone}
+        onChange={onChange}
+        disabled={disabled}
+      />
     </div>
   )
 }
@@ -484,6 +605,10 @@ function ReviewStep({
         { label: 'Email address', value: form.email },
         { label: 'Phone number', value: form.phone },
         { label: 'Residential address', value: form.address, wide: true },
+        {
+          label: 'Suburb / state / postcode',
+          value: `${form.suburb} ${form.state} ${form.postcode}`,
+        },
       ],
     },
     {
@@ -514,6 +639,9 @@ function ReviewStep({
         },
         { label: 'Adults in household', value: form.adultsInHome },
         { label: 'Children in household', value: form.childrenInHome },
+        { label: 'Yard or outdoor area', value: form.yardInformation, wide: true },
+        { label: 'Fence information', value: form.fenceInformation, wide: true },
+        { label: 'Household member details', value: form.householdDetails, wide: true },
         {
           label: 'Secure fenced yard',
           value: reviewChoice(form.secureYard, {
@@ -526,6 +654,21 @@ function ReviewStep({
     {
       title: 'Pet experience',
       items: [
+        {
+          label: 'Preferred fostering period',
+          value: form.preferredFosteringPeriod,
+        },
+        { label: 'Availability', value: form.availability },
+        { label: 'Transport', value: form.transportAvailability },
+        {
+          label: 'Reason for applying',
+          value: form.reasonForApplying,
+          wide: true,
+        },
+        {
+          label: 'Emergency contact',
+          value: `${form.emergencyContactName} ${form.emergencyContactPhone}`,
+        },
         {
           label: 'Application type',
           value: reviewChoice(form.applicationType, {
@@ -546,6 +689,7 @@ function ReviewStep({
           label: 'Pets currently in the home',
           value: reviewChoice(form.hasCurrentPets, yesNoLabels),
         },
+        { label: 'Preferred greyhound characteristics', value: form.preferredGreyhoundCharacteristics, wide: true },
         {
           label: 'Current pet details',
           value:
@@ -598,6 +742,41 @@ function ReviewStep({
       <FieldError id="confirm-accurate-error">
         {errors.confirmAccurate}
       </FieldError>
+      <label className="confirmation-field">
+        <input
+          type="checkbox"
+          name="termsAccepted"
+          checked={form.termsAccepted}
+          onChange={onChange}
+          disabled={disabled}
+        />
+        <span>
+          I accept the{' '}
+          <Link to="/privacy" target="_blank">
+            terms of use
+          </Link>
+          . *
+        </span>
+      </label>
+      <FieldError id="terms-error">{errors.termsAccepted}</FieldError>
+      <label className="confirmation-field">
+        <input
+          type="checkbox"
+          name="privacyConsent"
+          checked={form.privacyConsent}
+          onChange={onChange}
+          disabled={disabled}
+        />
+        <span>
+          I consent to GAP using this information to assess and manage my foster
+          application.{' '}
+          <Link to="/privacy" target="_blank">
+            Privacy notice
+          </Link>
+          . *
+        </span>
+      </label>
+      <FieldError id="privacy-error">{errors.privacyConsent}</FieldError>
     </div>
   )
 }
@@ -608,16 +787,19 @@ export function ApplicationFormPage(): ReactElement | null {
   const navigate = useNavigate()
   const [recordId, setRecordId] = useState<string | null>(null)
   const [form, setForm] = useState<ApplicationForm>(() =>
-    createEmptyApplicationForm(),
+    createEmptyApplicationForm(user || undefined),
   )
   const [currentStep, setCurrentStep] = useState(0)
   const [status, setStatus] = useState<ApplicationStatus>('draft')
   const [reviewNote, setReviewNote] = useState('')
+  const [editable, setEditable] = useState(false)
   const [errors, setErrors] = useState<ApplicationErrors>({})
   const [requestError, setRequestError] = useState('')
   const [message, setMessage] = useState('')
   const [isLoading, setIsLoading] = useState(Boolean(applicationId))
   const [isSaving, setIsSaving] = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
 
   useEffect(() => {
     if (!applicationId || !user) return undefined
@@ -635,6 +817,8 @@ export function ApplicationFormPage(): ReactElement | null {
         })
         setCurrentStep(application.currentStep ?? 0)
         setStatus(application.status)
+        setEditable(Boolean(application.editable))
+        if (application.editable) setCurrentStep(0)
         setReviewNote(application.reviewNote || '')
       })
       .catch((error) => {
@@ -651,10 +835,10 @@ export function ApplicationFormPage(): ReactElement | null {
     }
   }, [applicationId, user])
 
-  if (!user) return null
-  const applicant = user
+  const publicMode = !user
+  const applicant = user || { id: '', fullName: '', email: '' }
 
-  const readOnly = status !== 'draft'
+  const readOnly = status !== 'draft' && !editable
 
   function handleChange(event: ApplicationChangeEvent): void {
     const target = event.target
@@ -682,6 +866,18 @@ export function ApplicationFormPage(): ReactElement | null {
   }
 
   function handleNext(): void {
+    if (
+      publicMode &&
+      currentStep === 0 &&
+      (password.length < 8 ||
+        new TextEncoder().encode(password).length > 72 ||
+        password !== confirmPassword)
+    ) {
+      setRequestError(
+        'Use at least 8 characters and at most 72 UTF-8 bytes, and confirm your password.',
+      )
+      return
+    }
     if (readOnly) {
       goToStep(Math.min(currentStep + 1, APPLICATION_STEPS.length - 1))
       return
@@ -739,6 +935,21 @@ export function ApplicationFormPage(): ReactElement | null {
 
     try {
       setIsSaving(true)
+      if (publicMode) {
+        const result = await apiRequest<{
+          applicationId: string
+          verificationUrl?: string
+          message: string
+        }>('/portal/apply', { form, password })
+        navigate('/applicant/login', {
+          replace: true,
+          state: {
+            registrationMessage: `${result.message} Application ID: ${result.applicationId}`,
+            verificationUrl: result.verificationUrl,
+          },
+        })
+        return
+      }
       await applicationService.submit({
         id: recordId,
         applicantId: applicant.id,
@@ -774,11 +985,7 @@ export function ApplicationFormPage(): ReactElement | null {
         <div className="application-heading">
           <div>
             <p className="eyebrow">Application Form</p>
-            <h1>
-              {readOnly
-                ? 'Submitted Application'
-                : 'Foster & Adoption Application'}
-            </h1>
+            <h1>{readOnly ? 'Submitted Application' : 'Foster Application'}</h1>
             {readOnly && (
               <p className="status-badge">{applicationStatusLabel(status)}</p>
             )}
@@ -786,12 +993,15 @@ export function ApplicationFormPage(): ReactElement | null {
               {readOnly
                 ? reviewNote ||
                   'This application has been submitted and is now read-only.'
-                : 'Complete all four steps. You can save a draft and return later.'}
+                : 'Apply to become a GAP foster carer.'}
             </p>
           </div>
-          <Link className="application-back-link" to="/applicant">
+          <Link
+            className="application-back-link"
+            to={publicMode ? '/applicant/login' : '/applicant'}
+          >
             <span aria-hidden="true">←</span>
-            Back to Dashboard
+            {publicMode ? 'Sign in' : 'Back to Dashboard'}
           </Link>
         </div>
 
@@ -845,6 +1055,26 @@ export function ApplicationFormPage(): ReactElement | null {
               <Alert>{requestError}</Alert>
               <Alert tone="success">{message}</Alert>
               {renderStep()}
+              {publicMode && currentStep === 0 && (
+                <div className="application-fields">
+                  <FormField
+                    id="apply-password"
+                    label="Password *"
+                    type="password"
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                  <FormField
+                    id="apply-confirm-password"
+                    label="Confirm password *"
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                  />
+                </div>
+              )}
 
               <div className="application-actions">
                 {currentStep > 0 && (
@@ -857,7 +1087,7 @@ export function ApplicationFormPage(): ReactElement | null {
                   </button>
                 )}
                 <span className="application-actions__spacer" />
-                {!readOnly && (
+                {!readOnly && !publicMode && !editable && (
                   <button
                     className="secondary-button"
                     type="button"
@@ -895,7 +1125,9 @@ export function ApplicationFormPage(): ReactElement | null {
               <h2>Application notes</h2>
               <ul>
                 <li>Required fields are marked with *.</li>
-                <li>You can save a draft and return at any time.</li>
+                {!publicMode && (
+                  <li>You can save a draft and return at any time.</li>
+                )}
                 <li>GAP uses these details to review your application.</li>
               </ul>
             </aside>

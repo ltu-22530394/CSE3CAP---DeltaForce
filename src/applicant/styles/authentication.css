@@ -1,4 +1,3 @@
-
 .applicant-surface .auth-page {
   width: min(640px, calc(100% - 48px));
   margin: 0 auto;
@@ -7,30 +6,33 @@
 
 .applicant-surface .auth-page--overlay {
   width: 100%;
-  height: 100%;
+  height: auto;
   min-height: 0;
   margin: 0;
   padding: 4%;
-  flex: 1 1 auto;
+  flex: 1 0 auto;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  overflow: hidden;
+  overflow: visible;
   background:
     linear-gradient(
       90deg,
-      rgba(78, 32, 48, 0.02) 0%,
-      rgba(78, 32, 48, 0.08) 58%,
-      rgba(78, 32, 48, 0.28) 100%
+      rgba(16, 63, 110, 0.02) 0%,
+      rgba(16, 63, 110, 0.08) 58%,
+      rgba(16, 63, 110, 0.28) 100%
     ),
     url('/assets/greyhound-login-background.webp') 0% 50% / cover no-repeat;
 }
 
 .applicant-surface .auth-page--overlay .auth-card {
   width: 34%;
+  min-width: min(360px, 100%);
+  max-width: 560px;
+  flex-shrink: 0;
   max-height: none;
   overflow: visible;
-  background: rgba(255, 253, 251, 0.97);
+  background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(6px);
 }
 
@@ -185,4 +187,29 @@
 .applicant-surface .auth-panel__switch a {
   color: var(--color-brand);
   font-weight: 700;
+}
+
+.applicant-surface .portal-entry .auth-panel {
+  width: min(480px, 100%);
+  padding: 40px 32px;
+}
+
+.applicant-surface .portal-entry h1 {
+  font-size: 2rem;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.applicant-surface .portal-entry__choices {
+  display: grid;
+  gap: 16px;
+}
+
+.applicant-surface .portal-entry__choices a {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  font-size: 1.125rem;
 }

@@ -1,6 +1,14 @@
 import { staffApi } from '../../../api/staffApi'
 import { staffUser } from '../../../api/seed'
 import type { StaffUser } from '../../../api/model'
+import {
+  apiRequest,
+  apiSession,
+  clearApiSession,
+  saveApiSession,
+  useServerApi,
+} from '../../../api/http'
+import type { ApiUser } from '../../../api/http'
 import { createContext, useContext, useMemo, useState, useEffect } from 'react'
 import type { PropsWithChildren, ReactElement } from 'react'
 
@@ -29,11 +37,54 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: PropsWithChildren): ReactElement {
   const [session, setSession] = useState<AuthSession | null>(getStoredSession)
+  useEffect(() => {
+    if (!useServerApi) return
+    let timer: number | undefined
+    const reset = () => {
+      window.clearTimeout(timer)
+      if (apiSession())
+        timer = window.setTimeout(
+          () => {
+            void apiRequest('/auth/logout', {}).catch(() => {})
+            clearApiSession()
+            setSession(null)
+          },
+          30 * 60 * 1000,
+        )
+    }
+    reset()
+    for (const event of ['pointerdown', 'keydown', 'gap-session-change'])
+      window.addEventListener(event, reset)
+    return () => {
+      window.clearTimeout(timer)
+      for (const event of ['pointerdown', 'keydown', 'gap-session-change'])
+        window.removeEventListener(event, reset)
+    }
+  }, [])
 
   useEffect(() => {
     const sync = () => setSession(getStoredSession())
     window.addEventListener('storage', sync)
-    return () => window.removeEventListener('storage', sync)
+    window.addEventListener('gap-session-change', sync)
+    const checkedSession = useServerApi ? apiSession() : null
+    if (checkedSession) {
+      void apiRequest<{ user: ApiUser }>('/auth/me')
+        .then(({ user }) => {
+          const current = apiSession()
+          if (!current || current.token !== checkedSession.token) return
+          if (current) saveApiSession({ ...current, user })
+          if (current && ['applicant', 'foster_carer'].includes(user.role)) {
+            const updated = { token: current.token, user }
+            saveStoredSession(updated)
+            setSession(updated)
+          }
+        })
+        .catch(() => {})
+    }
+    return () => {
+      window.removeEventListener('storage', sync)
+      window.removeEventListener('gap-session-change', sync)
+    }
   }, [])
 
   const value = useMemo<AuthContextValue>(
@@ -44,7 +95,12 @@ export function AuthProvider({ children }: PropsWithChildren): ReactElement {
         return authService.register(details)
       },
       async login(credentials: LoginCredentials) {
-        if (credentials.email.trim().toLowerCase() === staffUser.email) {
+        if (
+          !useServerApi &&
+          credentials.email.trim().toLowerCase() === staffUser.email
+        ) {
+          if (credentials.audience === 'applicant')
+            throw new Error('Use the staff sign-in page for this account.')
           const staff = await staffApi.login(
             credentials.email,
             credentials.password,
@@ -55,13 +111,31 @@ export function AuthProvider({ children }: PropsWithChildren): ReactElement {
           return staff
         }
         const nextSession = await authService.login(credentials)
-        staffApi.logout()
+        if (
+          nextSession.user.role &&
+          ['staff', 'admin'].includes(nextSession.user.role)
+        ) {
+          clearStoredSession()
+          setSession(null)
+          window.dispatchEvent(new Event('gap-session-change'))
+          return {
+            id: nextSession.user.id,
+            name: nextSession.user.fullName,
+            email: nextSession.user.email,
+            role: nextSession.user.role,
+          }
+        }
+        if (!useServerApi) staffApi.logout()
         window.dispatchEvent(new Event('gap-session-change'))
         saveStoredSession(nextSession)
         setSession(nextSession)
         return nextSession.user
       },
       logout() {
+        if (useServerApi) {
+          void apiRequest('/auth/logout', {}).catch(() => {})
+          clearApiSession()
+        }
         clearStoredSession()
         setSession(null)
       },

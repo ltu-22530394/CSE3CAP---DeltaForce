@@ -8,6 +8,7 @@
   flex-direction: column;
   background: var(--canvas);
   z-index: 10;
+  overflow-y: auto;
 }
 .brand {
   display: block;
@@ -46,7 +47,7 @@
   padding-left: 0.15rem;
 }
 .brand-gap {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: inherit;
   font-size: 4rem;
   letter-spacing: 0.045em;
   line-height: 1;
@@ -69,6 +70,9 @@
   display: flex;
   flex-direction: column;
   gap: 1.05rem;
+  min-height: 120px;
+  overflow-y: auto;
+  flex: 1 1 auto;
 }
 .nav-item {
   min-height: 3.75rem;
@@ -89,7 +93,7 @@
   color: var(--brand);
 }
 .nav-item:hover {
-  background: #f0e8e2;
+  background: var(--surface-soft);
 }
 .nav-item.selected:hover {
   background: var(--selected);
@@ -156,9 +160,9 @@
   bottom: calc(100% - 1rem);
   left: 0;
   right: 0;
-  background: #f5efea;
-  border: 1px solid #d9cec6;
-  box-shadow: 0 8px 28px #35261b15;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-subtle);
   border-radius: 0.65rem;
   padding: 0.5rem;
   z-index: 20;
@@ -189,6 +193,13 @@
   padding: 2.35rem 3.5% 2.5rem 2.05%;
   min-height: 100dvh;
   outline: none;
+  min-width: 0;
+}
+
+.sidebar > .brand,
+.sidebar > .portal-label,
+.sidebar > .profile-area {
+  flex-shrink: 0;
 }
 .mobile-header,
 .navigation-scrim {

@@ -1,5 +1,11 @@
 import { weekStart } from './model'
-import type { Application, ApplicationForm, StaffUser, Status } from './model'
+import type {
+  Application,
+  ApplicationForm,
+  Greyhound,
+  StaffUser,
+  Status,
+} from './model'
 
 export const staffUser: StaffUser = {
   id: 'staff-jamie-morgan',
@@ -8,6 +14,15 @@ export const staffUser: StaffUser = {
   email: 'jamie@gap.example',
 }
 export const samplePassword = 'Greyhound2026!'
+
+export const seedGreyhounds: Greyhound[] = [
+  { id: 'GH-1042', name: 'Pippa', age: 4, sex: 'Female', status: 'available' },
+  { id: 'GH-1051', name: 'Archie', age: 5, sex: 'Male', status: 'available' },
+  { id: 'GH-1067', name: 'Ruby', age: 3, sex: 'Female', status: 'available' },
+  { id: 'GH-1073', name: 'Jasper', age: 6, sex: 'Male', status: 'available' },
+  { id: 'GH-1084', name: 'Luna', age: 4, sex: 'Female', status: 'available' },
+  { id: 'GH-1090', name: 'Milo', age: 7, sex: 'Male', status: 'medical_hold' },
+]
 
 export function seedApplications(now = new Date()): Application[] {
   const start = weekStart(now)

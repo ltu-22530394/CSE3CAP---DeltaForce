@@ -3,8 +3,10 @@ import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
 import { config } from '../config.js'
+import { backfillLegacyApplications } from './legacyApplications.js'
 
 let database = null
+const transactionDepth = new WeakMap()
 
 export function createDatabase(databaseFile = config.dbFile) {
   if (databaseFile !== ':memory:') {
@@ -27,24 +29,56 @@ export function getDatabase() {
 export function initializeDatabase(db = getDatabase()) {
   const schema = fs.readFileSync(config.schemaFile, 'utf8')
   db.exec(schema)
-  const columns = db.prepare("PRAGMA table_info(foster_applications)").all()
-  if (!columns.some((column) => column.name === 'revision')) {
-    db.exec('ALTER TABLE foster_applications ADD COLUMN revision INTEGER NOT NULL DEFAULT 0')
+  db.exec(
+    fs.readFileSync(new URL('./integration.sql', import.meta.url), 'utf8'),
+  )
+  db.exec(fs.readFileSync(new URL('./completion.sql', import.meta.url), 'utf8'))
+  const notificationSql = db
+    .prepare("SELECT sql FROM sqlite_schema WHERE name = 'notifications'")
+    .get().sql
+  if (!notificationSql.includes("'weekly_report'")) {
+    // Rebuild the old CHECK constraint without renaming the referenced table.
+    const replacement = notificationSql
+      .replace(
+        /^CREATE TABLE(?: IF NOT EXISTS)? notifications/i,
+        'CREATE TABLE notifications_new',
+      )
+      .replace(
+        "'password_reset'",
+        "'password_reset', 'withdrawal', 'weekly_report'",
+      )
+    db.exec('PRAGMA foreign_keys = OFF')
+    try {
+      withTransaction(() => {
+        db.exec(replacement)
+        db.exec('INSERT INTO notifications_new SELECT * FROM notifications')
+        db.exec('DROP TABLE notifications')
+        db.exec('ALTER TABLE notifications_new RENAME TO notifications')
+      }, db)
+    } finally {
+      db.exec('PRAGMA foreign_keys = ON')
+    }
+    db.exec(schema)
+    if (db.prepare('PRAGMA foreign_key_check').all().length)
+      throw new Error('Database migration integrity check failed.')
   }
-  if (!columns.some((column) => column.name === 'application_type')) {
-    db.exec("ALTER TABLE foster_applications ADD COLUMN application_type TEXT NOT NULL DEFAULT 'foster' CHECK (application_type IN ('adoption', 'foster'))")
-  }
+  backfillLegacyApplications(db)
 }
 
 export function withTransaction(work, db = getDatabase()) {
-  db.exec('BEGIN IMMEDIATE')
+  const depth = transactionDepth.get(db) || 0
+  const savepoint = `portal_transaction_${depth}`
+  db.exec(depth ? `SAVEPOINT ${savepoint}` : 'BEGIN IMMEDIATE')
+  transactionDepth.set(db, depth + 1)
   try {
     const result = work(db)
-    db.exec('COMMIT')
+    db.exec(depth ? `RELEASE SAVEPOINT ${savepoint}` : 'COMMIT')
     return result
   } catch (error) {
-    db.exec('ROLLBACK')
+    db.exec(depth ? `ROLLBACK TO SAVEPOINT ${savepoint}` : 'ROLLBACK')
     throw error
+  } finally {
+    transactionDepth.set(db, depth)
   }
 }
 

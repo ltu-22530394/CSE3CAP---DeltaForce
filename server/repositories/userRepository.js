@@ -31,6 +31,7 @@ function selectPublicUserById(db, id) {
           u.role_id,
           u.account_status,
           u.email_verified_at,
+          u.locked_until,
           a.id AS applicant_id,
           a.first_name,
           a.last_name,
@@ -59,6 +60,7 @@ export function findUserCredentialsByEmail(email) {
           u.role_id,
           u.account_status,
           u.email_verified_at,
+          u.locked_until,
           a.id AS applicant_id,
           a.first_name,
           a.last_name,
@@ -87,7 +89,11 @@ export function createApplicantAccount({
   lastName,
 }) {
   if (emailExists(email)) {
-    throw new ApiError(409, 'EMAIL_EXISTS', 'An account already exists for this email.')
+    throw new ApiError(
+      409,
+      'EMAIL_EXISTS',
+      'An account already exists for this email.',
+    )
   }
 
   const userId = randomUUID()
@@ -134,6 +140,7 @@ export function markLoginFailure(userId) {
       `
         UPDATE users
         SET failed_login_count = failed_login_count + 1,
+            locked_until = CASE WHEN failed_login_count >= 4 THEN datetime('now', '+15 minutes') ELSE locked_until END,
             updated_at = datetime('now')
         WHERE id = ?
       `,

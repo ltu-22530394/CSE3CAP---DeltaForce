@@ -7,8 +7,11 @@ import { staffApi } from '../api/staffApi'
 import { StatusText } from '../components/ApplicationRows'
 import { ErrorState, Loading, useResource } from '../components/AsyncView'
 import { DecisionDialog } from '../components/DecisionDialog'
+import { GreyhoundAssignmentDialog } from '../components/GreyhoundAssignmentDialog'
 import { Icon } from '../components/Icon'
 import { useFeedback } from '../components/Feedback'
+import { StaffApplicationTools } from '../components/StaffApplicationTools'
+import { PlacementControls } from '../components/PlacementControls'
 function Detail({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="detail">
@@ -35,6 +38,11 @@ export function ApplicationReviewPage({
         status: params.get('status') || '',
         type: params.get('type') || '',
         sort: params.get('sort') || 'newest',
+        from: params.get('from') || '',
+        to: params.get('to') || '',
+        location: params.get('location') || '',
+        staff: params.get('staff') || '',
+        allocated: params.get('allocated') || '',
       }),
     ])
     return { application, list }
@@ -47,6 +55,7 @@ export function ApplicationReviewPage({
     id: string
     decision: Decision
   } | null>(null)
+  const [assigning, setAssigning] = useState(false)
   const notify = useFeedback()
   if (error)
     return (
@@ -74,6 +83,13 @@ export function ApplicationReviewPage({
         : updated.status === 'in_review'
           ? 'Review started.'
           : `Application ${statusLabels[updated.status].toLowerCase()}.`,
+    )
+  }
+  function assignmentCompleted(updated: Application) {
+    setAssigning(false)
+    changed()
+    notify(
+      `${updated.assignment?.name || 'Greyhound'} assigned to ${updated.form.fullName}.`,
     )
   }
   return (
@@ -166,6 +182,16 @@ export function ApplicationReviewPage({
                 </a>
               </Detail>
               <Detail label="Residential address">{form.address}</Detail>
+              <Detail label="Suburb / state / postcode">
+                {[form.suburb, form.state, form.postcode]
+                  .filter(Boolean)
+                  .join(' ')}
+              </Detail>
+              <Detail label="Emergency contact">
+                {[form.emergencyContactName, form.emergencyContactPhone]
+                  .filter(Boolean)
+                  .join(' / ')}
+              </Detail>
             </dl>
           </section>
           <section className="detail-section">
@@ -181,6 +207,13 @@ export function ApplicationReviewPage({
                 {form.childrenInHome}
               </Detail>
               <Detail label="Secure yard">{form.secureYard}</Detail>
+              <Detail label="Fence and outdoor area">
+                {form.fenceInformation}
+              </Detail>
+              <Detail label="Yard information">{form.yardInformation}</Detail>
+              <Detail label="Household member details">
+                {form.householdDetails}
+              </Detail>
             </dl>
           </section>
           <section className="detail-section">
@@ -205,7 +238,25 @@ export function ApplicationReviewPage({
             </dl>
           </section>
           <section className="detail-section declaration">
+            <h2>Fostering availability</h2>
+            <dl className="detail-grid">
+              <Detail label="Preferred fostering period">
+                {form.preferredFosteringPeriod}
+              </Detail>
+              <Detail label="Availability">{form.availability}</Detail>
+              <Detail label="Transport">{form.transportAvailability}</Detail>
+              <Detail label="Reason for applying">
+                {form.reasonForApplying}
+              </Detail>
+              <Detail label="Preferred greyhound characteristics">
+                {form.preferredGreyhoundCharacteristics}
+              </Detail>
+            </dl>
             <h2>Declaration</h2>
+            <p>
+              Terms accepted: {form.termsAccepted ? 'Yes' : 'No'}. Privacy
+              consent: {form.privacyConsent ? 'Yes' : 'No'}.
+            </p>
             <p>
               <Icon name={form.confirmAccurate ? 'check' : 'close'} />
               {form.confirmAccurate
@@ -265,6 +316,26 @@ export function ApplicationReviewPage({
                 </button>
               </div>
             )}
+            {a.status === 'approved' &&
+              (a.assignment ? (
+                <div className="assigned-greyhound">
+                  <span>Assigned greyhound</span>
+                  <strong>{a.assignment.name}</strong>
+                  <p>
+                    {a.assignment.age} years · {a.assignment.sex} ·{' '}
+                    {shortDate(a.assignment.assignedAt)}
+                  </p>
+                </div>
+              ) : (
+                <div className="decision-buttons">
+                  <button
+                    className="button primary"
+                    onClick={() => setAssigning(true)}
+                  >
+                    Assign Greyhound
+                  </button>
+                </div>
+              ))}
           </section>
           <section className="activity-section">
             <h2>Activity</h2>
@@ -272,13 +343,14 @@ export function ApplicationReviewPage({
               {[...a.history].reverse().map((event) => (
                 <li key={event.id}>
                   <strong>
-                    {event.status === 'pending'
-                      ? 'Application submitted'
-                      : event.status === 'more_information'
-                        ? 'Information requested'
-                        : event.status === 'in_review'
-                          ? 'Review started'
-                          : `Application ${statusLabels[event.status].toLowerCase()}`}
+                    {event.label ||
+                      (event.status === 'pending'
+                        ? 'Application submitted'
+                        : event.status === 'more_information'
+                          ? 'Information requested'
+                          : event.status === 'in_review'
+                            ? 'Review started'
+                            : `Application ${statusLabels[event.status].toLowerCase()}`)}
                   </strong>
                   <p className="activity-meta">
                     {event.author}
@@ -298,6 +370,16 @@ export function ApplicationReviewPage({
           </section>
         </aside>
       </div>
+      <StaffApplicationTools
+        key={`${a.id}-${a.revision}`}
+        application={a}
+        changed={changed}
+      />
+      <PlacementControls
+        key={a.assignment?.allocationId || a.id}
+        application={a}
+        changed={changed}
+      />
       {action?.id === a.id && (
         <DecisionDialog
           key={`${a.id}-${action.decision}`}
@@ -305,6 +387,13 @@ export function ApplicationReviewPage({
           decision={action.decision}
           close={() => setAction(null)}
           complete={completed}
+        />
+      )}
+      {assigning && (
+        <GreyhoundAssignmentDialog
+          application={a}
+          close={() => setAssigning(false)}
+          complete={assignmentCompleted}
         />
       )}
     </div>

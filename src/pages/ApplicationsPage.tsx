@@ -5,6 +5,8 @@ import { statusLabels } from '../api/model'
 import { ApplicationRows } from '../components/ApplicationRows'
 import { ErrorState, Loading, useResource } from '../components/AsyncView'
 import { Icon } from '../components/Icon'
+import { apiRequest } from '../api/http'
+import type { StaffMember } from '../api/management'
 const PAGE_SIZE = 10
 export function ApplicationsPage({ revision }: { revision: number }) {
   const [params, setParams] = useSearchParams()
@@ -14,13 +16,29 @@ export function ApplicationsPage({ revision }: { revision: number }) {
     sort = params.get('sort') || 'newest'
   const requestedPage = Math.max(1, Number(params.get('page')) || 1)
   const load = useCallback(
-    () => staffApi.list({ q, status, type, sort }),
-    [q, status, type, sort],
+    () =>
+      staffApi.list({
+        q,
+        status,
+        type,
+        sort,
+        from: params.get('from') || '',
+        to: params.get('to') || '',
+        location: params.get('location') || '',
+        staff: params.get('staff') || '',
+        allocated: params.get('allocated') || '',
+      }),
+    [q, status, type, sort, params],
   )
   const { data, error, retry } = useResource(
     load,
     `${params.toString()}-${revision}`,
   )
+  const directoryLoad = useCallback(
+    () => apiRequest<{ staff: StaffMember[] }>('/portal/staff/directory'),
+    [],
+  )
+  const directory = useResource(directoryLoad, 'staff-directory')
   const setFilter = (key: string, value: string) => {
     const next = new URLSearchParams(window.location.search)
     if (value) next.set(key, value)
@@ -31,12 +49,14 @@ export function ApplicationsPage({ revision }: { revision: number }) {
   const pageCount = data ? Math.max(1, Math.ceil(data.length / PAGE_SIZE)) : 1
   const page = Math.min(requestedPage, pageCount)
   const start = (page - 1) * PAGE_SIZE
-  const activeFilters = Boolean(q || status || type)
+  const activeFilters = [...params.keys()].some(
+    (key) => !['page', 'sort'].includes(key),
+  )
   return (
     <div className="applications-page">
       <header className="page-heading">
         <h1>Applications</h1>
-        <p>Manage adoption and foster applications.</p>
+        <p>Foster applications</p>
       </header>
       <form
         className="filters"
@@ -50,7 +70,7 @@ export function ApplicationsPage({ revision }: { revision: number }) {
             type="search"
             value={q}
             onChange={(e) => setFilter('q', e.target.value)}
-            placeholder="Search name, email or reference"
+            placeholder="Name, email, ID or phone"
           />
         </label>
         <label className="select-field">
@@ -75,7 +95,6 @@ export function ApplicationsPage({ revision }: { revision: number }) {
             onChange={(e) => setFilter('type', e.target.value)}
           >
             <option value="">All types</option>
-            <option>Adoption</option>
             <option>Foster</option>
           </select>
         </label>
@@ -88,6 +107,48 @@ export function ApplicationsPage({ revision }: { revision: number }) {
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
             <option value="name">Name A–Z</option>
+          </select>
+        </label>
+        {['from', 'to'].map((key) => (
+          <label className="select-field" key={key}>
+            <span>{key === 'from' ? 'Submitted from' : 'Submitted to'}</span>
+            <input
+              type="date"
+              value={params.get(key) || ''}
+              onChange={(event) => setFilter(key, event.target.value)}
+            />
+          </label>
+        ))}
+        <label className="select-field">
+          <span>Location</span>
+          <input
+            value={params.get('location') || ''}
+            onChange={(event) => setFilter('location', event.target.value)}
+          />
+        </label>
+        <label className="select-field">
+          <span>Assigned staff</span>
+          <select
+            value={params.get('staff') || ''}
+            onChange={(event) => setFilter('staff', event.target.value)}
+          >
+            <option value="">All staff</option>
+            {directory.data?.staff.map((staff) => (
+              <option value={staff.id} key={staff.id}>
+                {staff.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="select-field">
+          <span>Allocation</span>
+          <select
+            value={params.get('allocated') || ''}
+            onChange={(event) => setFilter('allocated', event.target.value)}
+          >
+            <option value="">All placements</option>
+            <option value="yes">Allocated</option>
+            <option value="no">Not allocated</option>
           </select>
         </label>
       </form>
@@ -109,10 +170,17 @@ export function ApplicationsPage({ revision }: { revision: number }) {
         <Loading />
       ) : data.length ? (
         <>
-          <ApplicationRows
-            applications={data.slice(start, start + PAGE_SIZE)}
-            search={params.size ? `?${params}` : ''}
-          />
+          <div
+            className="application-list-scroll"
+            role="region"
+            aria-label="Applications list"
+            tabIndex={0}
+          >
+            <ApplicationRows
+              applications={data.slice(start, start + PAGE_SIZE)}
+              search={params.size ? `?${params}` : ''}
+            />
+          </div>
           <nav className="pagination" aria-label="Application pages">
             <span>
               Showing {start + 1}–{Math.min(start + PAGE_SIZE, data.length)} of{' '}

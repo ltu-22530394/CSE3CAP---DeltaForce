@@ -1,4 +1,5 @@
 import type { ApplicantUser } from '../auth/authTypes'
+import type { GreyhoundAssignment } from '../../../api/model'
 
 export const APPLICATION_STEPS = [
   'Personal Details',
@@ -14,6 +15,8 @@ export type ApplicationStatus =
   | 'more_information'
   | 'approved'
   | 'rejected'
+  | 'withdrawn'
+  | 'inactive'
 
 export interface ApplicationForm {
   fullName: string
@@ -21,6 +24,21 @@ export interface ApplicationForm {
   email: string
   phone: string
   address: string
+  suburb: string
+  state: string
+  postcode: string
+  fenceInformation: string
+  yardInformation: string
+  householdDetails: string
+  preferredGreyhoundCharacteristics: string
+  preferredFosteringPeriod: string
+  availability: string
+  transportAvailability: string
+  reasonForApplying: string
+  emergencyContactName: string
+  emergencyContactPhone: string
+  termsAccepted: boolean
+  privacyConsent: boolean
   residenceType: string
   housingStatus: string
   landlordPermission: string
@@ -41,6 +59,8 @@ export interface StoredApplication {
   status: ApplicationStatus
   currentStep: number
   reviewNote?: string
+  editable?: boolean
+  assignment?: GreyhoundAssignment
   form: ApplicationForm
   createdAt: string
   updatedAt: string
@@ -63,13 +83,28 @@ export function createEmptyApplicationForm(
     email: user?.email ?? '',
     phone: '',
     address: '',
+    suburb: '',
+    state: 'NSW',
+    postcode: '',
+    fenceInformation: '',
+    yardInformation: '',
+    householdDetails: '',
+    preferredGreyhoundCharacteristics: '',
+    preferredFosteringPeriod: '',
+    availability: '',
+    transportAvailability: '',
+    reasonForApplying: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    termsAccepted: false,
+    privacyConsent: false,
     residenceType: '',
     housingStatus: '',
     landlordPermission: '',
     adultsInHome: '',
     childrenInHome: '',
     secureYard: '',
-    applicationType: '',
+    applicationType: 'foster',
     dogExperience: '',
     greyhoundExperience: '',
     hasCurrentPets: '',
@@ -86,6 +121,8 @@ export function applicationStatusLabel(status?: ApplicationStatus): string {
     more_information: 'More information requested',
     approved: 'Approved',
     rejected: 'Rejected',
+    withdrawn: 'Withdrawn',
+    inactive: 'Inactive',
   }
   return status ? labels[status] : 'Not Started'
 }
