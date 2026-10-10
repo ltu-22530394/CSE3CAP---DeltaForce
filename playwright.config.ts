@@ -22,7 +22,6 @@ export default defineConfig({
       env: {
         API_PORT: '4011',
         APP_ORIGIN: 'http://localhost:5174',
-        EMAIL_MODE: 'preview',
         NODE_ENV: 'development',
         GAPS_DB_FILE: path.join(testDirectory, 'portal.sqlite'),
         BACKUP_DIR: path.join(testDirectory, 'backups'),

@@ -27,9 +27,7 @@ import {
   endAllocation,
   applicationAllocationHistory,
 } from '../repositories/portalRepository.js'
-import { issueAccountEmail } from '../integrations/accountEmails.js'
-import { flushEmails, deliverEmail } from '../integrations/email.js'
-import { microsoftConfigured } from '../integrations/microsoft.js'
+import { flushEmails } from '../integrations/email.js'
 import {
   salesforceConfigured,
   fetchSalesforceGreyhounds,
@@ -55,11 +53,14 @@ portalRouter.post(
       privacyConsent: form.privacyConsent,
     })
     const passwordHash = await hashPassword(registration.password)
-    let application, user, verificationUrl
+    let application, user
     withTransaction(() => {
       user = createApplicantAccount({ ...registration, passwordHash })
-      application = savePortalApplication(user, { form, currentStep: 3 }, true)
-      verificationUrl = issueAccountEmail(user)
+      application = savePortalApplication(
+        user,
+        { form, currentStep: 3 },
+        true,
+      )
       recordAuditLog({
         actorUserId: user.id,
         action: 'account.created',
@@ -70,15 +71,17 @@ portalRouter.post(
     await flushEmails()
     res.status(201).json({
       applicationId: application.id,
-      verificationUrl,
-      message: 'Application received. Verify your email address to sign in.',
+      message:
+        'Application received. Sign in with your email and password.',
     })
   }),
 )
 
 portalRouter.use(requireAuth)
 portalRouter.get('/applications', requireApplicant, (req, res) =>
-  res.json({ applications: listApplicantApplications(req.user.applicantId) }),
+  res.json({
+    applications: listApplicantApplications(req.user.applicantId),
+  }),
 )
 portalRouter.get('/applications/:id', requireApplicant, (req, res) =>
   res.json({
@@ -143,7 +146,10 @@ portalRouter.post(
       })
     })
     res.json({
-      application: applicantApplication(application.id, req.user.applicantId),
+      application: applicantApplication(
+        application.id,
+        req.user.applicantId,
+      ),
     })
   }),
 )
@@ -182,7 +188,11 @@ portalRouter.get('/staff/applications/:id', (req, res) => {
 portalRouter.post(
   '/staff/applications/:id/decision',
   asyncRoute(async (req, res) => {
-    const application = decideApplication(req.user, req.params.id, req.body)
+    const application = decideApplication(
+      req.user,
+      req.params.id,
+      req.body,
+    )
     await flushEmails()
     res.json({ application })
   }),
@@ -196,13 +206,19 @@ portalRouter.post('/staff/greyhounds', (req, res) =>
 portalRouter.post(
   '/staff/applications/:id/allocation',
   asyncRoute(async (req, res) => {
-    const application = allocateGreyhound(req.user, req.params.id, req.body)
+    const application = allocateGreyhound(
+      req.user,
+      req.params.id,
+      req.body,
+    )
     await flushEmails()
     res.json({ application })
   }),
 )
 portalRouter.post('/staff/applications/:id/allocation/end', (req, res) =>
-  res.json({ application: endAllocation(req.user, req.params.id, req.body) }),
+  res.json({
+    application: endAllocation(req.user, req.params.id, req.body),
+  }),
 )
 portalRouter.get('/staff/applications/:id/allocations', (req, res) =>
   res.json({ allocations: applicationAllocationHistory(req.params.id) }),
@@ -279,9 +295,9 @@ portalRouter.get(
 
 portalRouter.get('/staff/integrations', (_req, res) =>
   res.json({
-    microsoft: { configured: microsoftConfigured() },
+    staffAuthentication: 'password',
     email: {
-      configured: config.emailMode === 'smtp' && Boolean(config.smtpHost),
+      configured: false,
       mode: config.emailMode,
     },
     salesforce: { configured: salesforceConfigured(), csv: true },
@@ -292,18 +308,25 @@ portalRouter.get('/staff/notifications', (_req, res) => {
   const items = db
     .prepare(
       `SELECT n.id, n.recipient_email AS recipient, n.notification_type AS type, n.subject, n.delivery_status AS status, n.error_message AS error, n.created_at AS createdAt,
-    ${config.emailMode === 'preview' && !config.production ? 'c.body' : 'NULL'} AS body FROM notifications n JOIN portal_notification_content c ON c.notification_id = n.id ORDER BY n.created_at DESC, n.rowid DESC LIMIT 100`,
+    NULL AS body FROM notifications n JOIN portal_notification_content c ON c.notification_id = n.id ORDER BY n.created_at DESC, n.rowid DESC LIMIT 100`,
     )
     .all()
-  res.json({ notifications: items, preview: config.emailMode === 'preview' })
+  res.json({
+    notifications: items.map((item) => ({
+      ...item,
+      status: item.status === 'sent' ? 'sent' : 'stored',
+      error: null,
+    })),
+    preview: false,
+  })
 })
-portalRouter.post(
-  '/staff/notifications/:id/retry',
-  asyncRoute(async (req, res) => {
-    await deliverEmail(req.params.id)
-    res.json({ message: 'Delivery retry completed.' })
-  }),
-)
+portalRouter.post('/staff/notifications/:id/retry', () => {
+  throw new ApiError(
+    410,
+    'EMAIL_DISABLED',
+    'Email delivery has been removed. Application updates are available in the portal.',
+  )
+})
 portalRouter.get('/staff/resources', (_req, res) =>
   res.json({
     resources: getDatabase()

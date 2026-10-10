@@ -18,11 +18,9 @@ interface Notification {
   recipient: string
   subject: string
   status: string
-  body?: string
-  error?: string
 }
 interface Settings {
-  microsoft: { configured: boolean }
+  staffAuthentication: 'password'
   email: { mode: string; configured: boolean }
   salesforce: { configured: boolean }
 }
@@ -44,14 +42,18 @@ export function IntegrationsPage() {
   const load = useCallback(async () => {
     const [settings, emails, resources] = await Promise.all([
       apiRequest<Settings>('/portal/staff/integrations'),
-      apiRequest<{ notifications: Notification[]; preview: boolean }>(
+      apiRequest<{ notifications: Notification[] }>(
         '/portal/staff/notifications',
       ),
       apiRequest<{ resources: Resource[] }>('/portal/staff/resources'),
     ])
     return { settings, ...emails, ...resources }
   }, [])
-  const { data, error: loadError, retry } = useResource(load, String(revision))
+  const {
+    data,
+    error: loadError,
+    retry,
+  } = useResource(load, String(revision))
   async function saveResource(event: React.FormEvent) {
     event.preventDefault()
     setSaving(true)
@@ -98,23 +100,13 @@ export function IntegrationsPage() {
       <section className="integration-status" aria-label="Service connections">
         <div>
           <Plug size={20} />
-          <strong>Microsoft sign-in</strong>
-          <span>
-            {data.settings.microsoft.configured
-              ? 'Configured'
-              : 'Awaiting client settings'}
-          </span>
+          <strong>Staff sign-in</strong>
+          <span>Email and password</span>
         </div>
         <div>
           <Mail size={20} />
           <strong>Email delivery</strong>
-          <span>
-            {data.settings.email.mode === 'preview'
-              ? 'Local preview, not sent'
-              : data.settings.email.configured
-                ? 'SMTP configured'
-                : 'Not configured'}
-          </span>
+          <span>Disabled</span>
         </div>
         <div>
           <Plug size={20} />
@@ -132,7 +124,7 @@ export function IntegrationsPage() {
           aria-selected={tab === 'emails'}
           onClick={() => setTab('emails')}
         >
-          Emails
+          Notifications
         </button>
         <button
           role="tab"
@@ -149,9 +141,7 @@ export function IntegrationsPage() {
       )}
       {tab === 'emails' ? (
         <section className="notification-list">
-          <h2>
-            {data.preview ? 'Local email previews' : 'Email delivery log'}
-          </h2>
+          <h2>Portal notification history</h2>
           {!data.notifications.length && <p>No notifications yet.</p>}
           {data.notifications.map((item) => (
             <article className="notification-row" key={item.id}>
@@ -159,34 +149,7 @@ export function IntegrationsPage() {
                 <strong>{item.subject}</strong>
                 <span>{item.recipient}</span>
               </div>
-              <span>
-                {data.preview && item.status === 'pending'
-                  ? 'Preview only'
-                  : item.status}
-              </span>
-              {item.error && <p className="field-error">{item.error}</p>}
-              {item.body && (
-                <details>
-                  <summary>View email</summary>
-                  <pre>{item.body}</pre>
-                </details>
-              )}
-              {!data.preview && item.status !== 'sent' && (
-                <button
-                  className="button secondary"
-                  onClick={() => {
-                    void apiRequest(
-                      `/portal/staff/notifications/${item.id}/retry`,
-                      {},
-                    )
-                      .then(() => setRevision((value) => value + 1))
-                      .catch((reason: Error) => setError(reason.message))
-                  }}
-                >
-                  <RefreshCw size={16} />
-                  Retry delivery
-                </button>
-              )}
+              <span>{item.status}</span>
             </article>
           ))}
         </section>
@@ -269,15 +232,43 @@ export function IntegrationsPage() {
                 />
                 <span>Active resource</span>
               </label>
-              <label className="confirmation-field"><input type="checkbox" checked={Boolean(editing.requiresApproval)} onChange={event=>setEditing(current=>({...current,requiresApproval:Number(event.target.checked)}))}/><span>Restricted to approved carers</span></label>
-              <label className="field"><span>Display order</span><input type="number" min={0} max={10000} value={editing.displayOrder ?? 0} onChange={event=>setEditing(current=>({...current,displayOrder:Number(event.target.value)}))}/></label>
+              <label className="confirmation-field">
+                <input
+                  type="checkbox"
+                  checked={Boolean(editing.requiresApproval)}
+                  onChange={(event) =>
+                    setEditing((current) => ({
+                      ...current,
+                      requiresApproval: Number(event.target.checked),
+                    }))
+                  }
+                />
+                <span>Restricted to approved carers</span>
+              </label>
+              <label className="field">
+                <span>Display order</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={10000}
+                  value={editing.displayOrder ?? 0}
+                  onChange={(event) =>
+                    setEditing((current) => ({
+                      ...current,
+                      displayOrder: Number(event.target.value),
+                    }))
+                  }
+                />
+              </label>
               <button className="button primary" disabled={saving}>
                 <Save size={16} />
                 {saving ? 'Saving...' : 'Save resource'}
               </button>
             </form>
           )}
-          {!data.resources.length && <p>No care resources have been added.</p>}
+          {!data.resources.length && (
+            <p>No care resources have been added.</p>
+          )}
           {data.resources.map((resource) => (
             <article className="resource-row" key={resource.id}>
               <div>

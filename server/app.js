@@ -3,6 +3,7 @@ import express from 'express'
 import { rateLimit } from 'express-rate-limit'
 import { portalRouter } from './routes/portalRoutes.js'
 import { seedDemoStaff } from './scripts/seed-demo.js'
+import { bootstrapAdmin } from './scripts/bootstrap-admin.js'
 import helmet from 'helmet'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -19,6 +20,7 @@ import { ApiError } from './utils/apiError.js'
 
 export function createApp() {
   initializeDatabase()
+  bootstrapAdmin()
   seedDemoStaff()
   seedEmailTemplates()
 

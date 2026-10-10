@@ -108,9 +108,8 @@ export const authService: AuthService = useServerApi
       async register(details) {
         const result = await apiRequest<{
           user: ApplicantUser
-          verificationUrl?: string
         }>('/auth/register', details)
-        return { ...result.user, verificationUrl: result.verificationUrl }
+        return result.user
       },
       async login(credentials) {
         const result = await apiRequest<ApiSession>('/auth/login', credentials)

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-test('public application, verification, staff decision, import, and carer placement', async ({
+test('public application, immediate login, staff decision, import, and carer placement', async ({
   page,
   browser,
 }) => {
@@ -30,10 +30,16 @@ test('public application, verification, staff decision, import, and carer placem
     fullPage: true,
   })
   await page.setViewportSize({ width: 1440, height: 900 })
-  await page.getByLabel('Full Name *', { exact: true }).fill('Capstone Foster')
-  await page.getByLabel('Date of Birth *', { exact: true }).fill('1990-04-12')
+  await page
+    .getByLabel('Full Name *', { exact: true })
+    .fill('Capstone Foster')
+  await page
+    .getByLabel('Date of Birth *', { exact: true })
+    .fill('1990-04-12')
   await page.getByLabel('Email Address *', { exact: true }).fill(email)
-  await page.getByLabel('Phone Number *', { exact: true }).fill('0412345678')
+  await page
+    .getByLabel('Phone Number *', { exact: true })
+    .fill('0412345678')
   await page
     .getByLabel('Residential Address *', { exact: true })
     .fill('10 Example Street')
@@ -59,7 +65,9 @@ test('public application, verification, staff decision, import, and carer placem
     .getByLabel('Describe your experience caring for dogs *')
     .fill('Five years of caring for dogs.')
   await page
-    .getByRole('group', { name: 'Have you cared for a greyhound before? *' })
+    .getByRole('group', {
+      name: 'Have you cared for a greyhound before? *',
+    })
     .getByRole('radio', { name: 'No', exact: true })
     .check()
   await page
@@ -83,16 +91,11 @@ test('public application, verification, staff decision, import, and carer placem
   await page.getByLabel(/I consent to GAP using/).check()
   await page.getByRole('button', { name: 'Submit Application' }).click()
   await expect(page.getByText(/Application received/)).toBeVisible()
-  await page
-    .getByRole('link', { name: 'Open local verification email' })
-    .click()
-  await page.getByRole('button', { name: 'Verify email', exact: true }).click()
-  await expect(
-    page.getByText('Email verified. You can now log in.'),
-  ).toBeVisible()
-  await page.getByRole('link', { name: 'Back to sign in' }).click()
+  await page.goto('/applicant/login')
   await page.getByLabel('Email', { exact: true }).fill(email)
-  await page.getByLabel('Password', { exact: true }).fill('FosterPassword123!')
+  await page
+    .getByLabel('Password', { exact: true })
+    .fill('FosterPassword123!')
   await page.getByRole('button', { name: 'Login', exact: true }).click()
   await expect(
     page.getByRole('heading', { name: 'My Applications' }),
@@ -100,10 +103,16 @@ test('public application, verification, staff decision, import, and carer placem
   const staffContext = await browser.newContext()
   const staff = await staffContext.newPage()
   await staff.goto('http://localhost:5174/login')
-  await staff.getByLabel('Email', { exact: true }).fill('jamie@gap.example')
-  await staff.getByLabel('Password', { exact: true }).fill('Greyhound2026!')
+  await staff
+    .getByLabel('Email', { exact: true })
+    .fill('jamie@gap.example')
+  await staff
+    .getByLabel('Password', { exact: true })
+    .fill('Greyhound2026!')
   await staff.getByRole('button', { name: 'Login', exact: true }).click()
-  await staff.getByRole('link', { name: 'Applications', exact: true }).click()
+  await staff
+    .getByRole('link', { name: 'Applications', exact: true })
+    .click()
   await staff
     .getByRole('link', { name: /Capstone Foster/ })
     .first()
@@ -116,9 +125,13 @@ test('public application, verification, staff decision, import, and carer placem
     staff.getByRole('button', { name: 'Assign Greyhound' }),
   ).toBeVisible()
   const reviewUrl = staff.url()
-  await staff.getByRole('link', { name: 'Integrations & Resources' }).click()
+  await staff
+    .getByRole('link', { name: 'Integrations & Resources' })
+    .click()
   await staff.getByRole('tab', { name: 'Care resources' }).click()
-  await staff.getByLabel('Title', { exact: true }).fill('Foster care guide')
+  await staff
+    .getByLabel('Title', { exact: true })
+    .fill('Foster care guide')
   await staff
     .getByLabel('HTTPS link')
     .fill('https://example.com/approved-guide.pdf')
@@ -126,7 +139,9 @@ test('public application, verification, staff decision, import, and carer placem
   await expect(
     staff.getByRole('link', { name: 'Foster care guide' }),
   ).toBeVisible()
-  await staff.getByRole('link', { name: 'Greyhounds', exact: true }).click()
+  await staff
+    .getByRole('link', { name: 'Greyhounds', exact: true })
+    .click()
   await staff.getByRole('button', { name: 'Import', exact: true }).click()
   await staff.getByLabel('CSV or Excel file').setInputFiles({
     name: 'salesforce.csv',

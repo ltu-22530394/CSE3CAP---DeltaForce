@@ -47,16 +47,6 @@ async function apiRequest(method, route, body = undefined, token = undefined) {
 
   const text = await response.text()
   const result = text ? JSON.parse(text) : null
-  if (
-    route === '/api/auth/register' &&
-    response.status === 201 &&
-    result.verificationUrl
-  )
-    await apiRequest('POST', '/api/auth/verify-email', {
-      token: new URLSearchParams(
-        new URL(result.verificationUrl).hash.slice(1),
-      ).get('token'),
-    })
   return {
     body: result,
     status: response.status,

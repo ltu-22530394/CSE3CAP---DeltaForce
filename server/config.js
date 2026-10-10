@@ -49,28 +49,12 @@ export const config = {
     process.env.DEMO_STAFF_ENABLED !== 'false' &&
     process.env.NODE_ENV !== 'production',
   demoStaffPassword: process.env.DEMO_STAFF_PASSWORD || 'Greyhound2026!',
-  emailMode:
-    process.env.EMAIL_MODE || (process.env.SMTP_HOST ? 'smtp' : 'preview'),
-  emailFrom: process.env.EMAIL_FROM || 'GAP <gap@example.com>',
-  smtpHost: process.env.SMTP_HOST,
-  smtpPort: Number(process.env.SMTP_PORT || 587),
-  smtpSecure: process.env.SMTP_SECURE === 'true',
-  smtpUser: process.env.SMTP_USER,
-  smtpPassword: process.env.SMTP_PASSWORD,
-  microsoftTenantId: process.env.MICROSOFT_TENANT_ID,
-  microsoftClientId: process.env.MICROSOFT_CLIENT_ID,
-  microsoftClientSecret: process.env.MICROSOFT_CLIENT_SECRET,
-  microsoftRedirectUri:
-    process.env.MICROSOFT_REDIRECT_URI ||
-    'http://localhost:4000/api/auth/microsoft/callback',
-  microsoftStaffIds: (process.env.MICROSOFT_STAFF_OBJECT_IDS || '')
-    .split(',')
-    .map((id) => id.trim())
-    .filter(Boolean),
-  microsoftAdminIds: (process.env.MICROSOFT_ADMIN_OBJECT_IDS || '')
-    .split(',')
-    .map((id) => id.trim())
-    .filter(Boolean),
+  emailMode: 'disabled',
+  bootstrapAdminEmail: (process.env.BOOTSTRAP_ADMIN_EMAIL || '')
+    .trim()
+    .toLowerCase(),
+  bootstrapAdminName: (process.env.BOOTSTRAP_ADMIN_NAME || '').trim(),
+  bootstrapAdminPassword: process.env.BOOTSTRAP_ADMIN_PASSWORD || '',
   salesforceLoginUrl: process.env.SALESFORCE_LOGIN_URL,
   salesforceClientId: process.env.SALESFORCE_CLIENT_ID,
   salesforceClientSecret: process.env.SALESFORCE_CLIENT_SECRET,
@@ -79,16 +63,8 @@ export const config = {
   salesforceFieldMap: process.env.SALESFORCE_FIELD_MAP || '',
 }
 
-if (
-  config.production &&
-  (config.emailMode !== 'smtp' ||
-    !config.smtpHost ||
-    !config.appOrigin.startsWith('https://'))
-) {
-  throw new Error(
-    'Production requires HTTPS APP_ORIGIN and configured SMTP email delivery.',
-  )
-}
+if (config.production && !config.appOrigin.startsWith('https://'))
+  throw new Error('Production requires an HTTPS APP_ORIGIN.')
 if (
   config.production &&
   (config.jwtSecret.length < 32 ||

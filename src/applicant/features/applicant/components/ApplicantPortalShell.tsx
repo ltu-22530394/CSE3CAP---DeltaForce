@@ -51,7 +51,7 @@ export function ApplicantPortalShell({
     return (
       <div className="applicant-shell">
         <header className="applicant-header">
-          <Link className="portal-brand" to="/apply">
+          <Link className="portal-brand" to="/" aria-label="GAP home">
             <img
               className="portal-brand__logo"
               src="/assets/gap-logo-blue.png"
@@ -84,8 +84,8 @@ export function ApplicantPortalShell({
       <header className="applicant-header">
         <Link
           className="portal-brand"
-          to="/applicant"
-          aria-label="GAP Applicant Portal"
+          to="/"
+          aria-label="GAP home"
         >
           <img
             className="portal-brand__logo"

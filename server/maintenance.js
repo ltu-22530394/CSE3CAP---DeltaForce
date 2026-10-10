@@ -69,6 +69,12 @@ async function performBackup(user) {
   }
 }
 export async function weeklyReport(user = null, now = new Date()) {
+  if (config.emailMode === 'disabled')
+    throw new ApiError(
+      409,
+      'EMAIL_DISABLED',
+      'Email delivery has been removed. Download reports from the Reports page instead.',
+    )
   const settings = portalSettings()
   if (!settings.weeklyEnabled || !settings.weeklyRecipients.length)
     throw new ApiError(
@@ -153,7 +159,9 @@ export function startMaintenance() {
       cron.schedule(
         '0 2 * * *',
         () =>
-          createBackup().catch(() => console.error('Scheduled backup failed.')),
+          createBackup().catch(() =>
+            console.error('Scheduled backup failed.'),
+          ),
         { timezone: config.timezone, noOverlap: true },
       ),
     )
@@ -161,16 +169,16 @@ export function startMaintenance() {
     cron.schedule(
       '0 9 * * 1',
       () => {
-        if (portalSettings().weeklyEnabled)
+        if (
+          config.emailMode !== 'disabled' &&
+          portalSettings().weeklyEnabled
+        )
           return weeklyReport().catch(() =>
             console.error('Scheduled weekly report failed.'),
           )
       },
       { timezone: config.timezone, noOverlap: true },
     ),
-  )
-  tasks.push(
-    cron.schedule('* * * * *', () => flushEmails(), { noOverlap: true }),
   )
   return () => tasks.forEach((task) => task.stop())
 }

@@ -938,14 +938,12 @@ export function ApplicationFormPage(): ReactElement | null {
       if (publicMode) {
         const result = await apiRequest<{
           applicationId: string
-          verificationUrl?: string
           message: string
         }>('/portal/apply', { form, password })
         navigate('/applicant/login', {
           replace: true,
           state: {
             registrationMessage: `${result.message} Application ID: ${result.applicationId}`,
-            verificationUrl: result.verificationUrl,
           },
         })
         return

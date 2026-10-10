@@ -44,16 +44,7 @@ test('profile, case management, administration, Excel, reports and maintenance o
   })
   expect(appliedResponse.status()).toBe(201)
   const applied = await appliedResponse.json()
-  const verificationToken = new URLSearchParams(
-    new URL(applied.verificationUrl).hash.slice(1),
-  ).get('token')
-  expect(
-    (
-      await request.post('/api/auth/verify-email', {
-        data: { token: verificationToken },
-      })
-    ).status(),
-  ).toBe(200)
+  expect(applied.verificationUrl).toBeUndefined()
   const errors: string[] = []
   async function signIn(p: Page, user: string, password: string) {
     p.on('pageerror', (error) => errors.push(error.message))
@@ -65,12 +56,16 @@ test('profile, case management, administration, Excel, reports and maintenance o
   }
   await signIn(page, email, 'FosterPassword123!')
   await page.goto('/applicant/profile')
-  await expect(page.getByRole('heading', { name: 'My Profile' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'My Profile' }),
+  ).toBeVisible()
   await page.getByLabel('Phone number', { exact: true }).fill('0499999999')
   await page.getByLabel('Suburb', { exact: true }).fill('Newcastle')
   await page.getByRole('button', { name: 'Save contact details' }).click()
   await expect(
-    page.getByRole('status').filter({ hasText: 'Contact information updated' }),
+    page
+      .getByRole('status')
+      .filter({ hasText: 'Contact information updated' }),
   ).toContainText('Contact information updated')
   const staffContext = await browser.newContext({
     baseURL: 'http://localhost:5174',
@@ -79,16 +74,22 @@ test('profile, case management, administration, Excel, reports and maintenance o
   const staff = await staffContext.newPage()
   await signIn(staff, 'jamie@gap.example', 'Greyhound2026!')
   await staff.goto('/staff/applications/' + applied.applicationId)
-  await expect(staff.getByText('0499999999', { exact: true })).toBeVisible()
+  await expect(
+    staff.getByText('0499999999', { exact: true }),
+  ).toBeVisible()
   await staff
     .getByLabel('Assigned staff member')
     .selectOption({ label: 'Jamie Parker' })
-  await staff.getByRole('button', { name: 'Assign staff', exact: true }).click()
+  await staff
+    .getByRole('button', { name: 'Assign staff', exact: true })
+    .click()
   await expect(staff.getByLabel('Assigned staff member')).toHaveValue(/.+/)
   await staff
     .getByLabel('New case note')
     .fill('Private assessment for staff only')
-  await staff.getByRole('button', { name: 'Add note', exact: true }).click()
+  await staff
+    .getByRole('button', { name: 'Add note', exact: true })
+    .click()
   await expect(
     staff.getByText('Private assessment for staff only', { exact: true }),
   ).toBeVisible()
@@ -99,9 +100,9 @@ test('profile, case management, administration, Excel, reports and maintenance o
     staff.getByRole('button', { name: 'Corrections permitted' }),
   ).toBeDisabled()
   await page.goto('/applicant')
-  await expect(page.getByText('Private assessment for staff only')).toHaveCount(
-    0,
-  )
+  await expect(
+    page.getByText('Private assessment for staff only'),
+  ).toHaveCount(0)
   await expect(
     page.getByRole('link', { name: /correct|edit/i }).first(),
   ).toBeVisible()
@@ -169,7 +170,9 @@ test('profile, case management, administration, Excel, reports and maintenance o
   await expect(
     page.getByRole('heading', { name: dogName, exact: true }),
   ).toBeVisible()
-  await expect(page.getByText('Two meals daily', { exact: true })).toBeVisible()
+  await expect(
+    page.getByText('Two meals daily', { exact: true }),
+  ).toBeVisible()
   await expect(page.getByText('Staff-only transport notes')).toHaveCount(0)
 
   await staff.goto('/staff/administration')
@@ -181,15 +184,15 @@ test('profile, case management, administration, Excel, reports and maintenance o
   await staff
     .getByLabel('Staff email', { exact: true })
     .fill('staff-' + stamp + '@example.com')
-  await staff
-    .getByLabel('Microsoft object ID')
-    .fill('11111111-2222-3333-4444-555555555555')
+  await staff.getByLabel('Staff password').fill('StaffPassword123!')
   await staff.getByRole('button', { name: 'Create staff account' }).click()
   await expect(
     staff.getByText('staff-' + stamp + '@example.com', { exact: true }),
   ).toBeVisible()
   await staff.getByRole('tab', { name: 'Email templates' }).click()
-  await staff.getByLabel('Notification template').selectOption('withdrawal')
+  await staff
+    .getByLabel('Notification template')
+    .selectOption('withdrawal')
   await staff
     .getByLabel('Subject', { exact: true })
     .fill('Withdrawal update {{name}}')
@@ -197,10 +200,11 @@ test('profile, case management, administration, Excel, reports and maintenance o
   await expect(staff.getByLabel('Subject', { exact: true })).toHaveValue(
     'Withdrawal update {{name}}',
   )
-  await staff.getByRole('tab', { name: 'System settings', exact: true }).click()
+  await staff
+    .getByRole('tab', { name: 'System settings', exact: true })
+    .click()
   await staff.getByLabel('GAP contact email').fill('contact@example.com')
-  await staff.getByLabel('Enable Monday report').check()
-  await staff.getByLabel('Jamie Parker (jamie@gap.example)').check()
+  await expect(staff.getByLabel('Enable Monday report')).toBeDisabled()
   await staff
     .getByRole('button', { name: 'Save settings', exact: true })
     .click()
@@ -214,10 +218,13 @@ test('profile, case management, administration, Excel, reports and maintenance o
   await expect(
     staff.getByText('Backup created and integrity verified.'),
   ).toBeVisible()
-  await staff.getByRole('button', { name: 'Queue weekly report' }).click()
-  await expect(staff.getByText(/Weekly report.*queued/)).toBeVisible()
+  await expect(
+    staff.getByRole('button', { name: 'Queue weekly report' }),
+  ).toBeDisabled()
   await staff.getByRole('tab', { name: 'Audit log' }).click()
-  await staff.getByLabel('Search action or record ID').fill('backup.completed')
+  await staff
+    .getByLabel('Search action or record ID')
+    .fill('backup.completed')
   await expect(
     staff.getByRole('cell').filter({ hasText: 'backup.completed' }),
   ).toBeVisible()
@@ -228,7 +235,9 @@ test('profile, case management, administration, Excel, reports and maintenance o
   await staff.getByLabel('File format').selectOption('xlsx')
   const downloaded = staff.waitForEvent('download')
   await staff.getByRole('button', { name: 'Export report' }).click()
-  expect((await downloaded).suggestedFilename()).toBe('application-status.xlsx')
+  expect((await downloaded).suggestedFilename()).toBe(
+    'application-status.xlsx',
+  )
 
   async function checkView(p: Page, name: string, width: number) {
     await p.setViewportSize({ width, height: 900 })
@@ -307,7 +316,9 @@ test('profile, case management, administration, Excel, reports and maintenance o
     staff.getByText('Inactive', { exact: true }).first(),
   ).toBeVisible()
   await page.goto('/applicant/profile')
-  await expect(page.getByRole('heading', { name: 'My Profile' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'My Profile' }),
+  ).toBeVisible()
   await checkView(page, 'profile-mobile', 390)
   await page.goto('/fostering')
   await expect(
@@ -321,7 +332,9 @@ test('profile, case management, administration, Excel, reports and maintenance o
     .getByRole('button', { name: 'Edit', exact: true })
     .click()
   await expect(staff.getByRole('dialog')).toBeVisible()
-  await staff.getByLabel('Name', { exact: true }).fill(dogName + ' Updated')
+  await staff
+    .getByLabel('Name', { exact: true })
+    .fill(dogName + ' Updated')
   await staff.getByLabel('Age', { exact: true }).fill('4')
   await staff
     .getByRole('dialog')

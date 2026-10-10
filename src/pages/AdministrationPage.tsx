@@ -7,8 +7,9 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  KeyRound,
 } from 'lucide-react'
-import { apiRequest, apiSession } from '../api/http'
+import { apiRequest, apiSession, clearApiSession } from '../api/http'
 import type { ManagedUser, PortalSettings } from '../api/management'
 import { useResource, ErrorState, Loading } from '../components/AsyncView'
 
@@ -45,7 +46,11 @@ function SettingsEditor({
   users: ManagedUser[]
   refresh: () => void
 }) {
-  const [form, setForm] = useState(initial),
+  const [form, setForm] = useState({
+      ...initial,
+      weeklyEnabled: false,
+      weeklyRecipients: [] as string[],
+    }),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('')
   const labels = {
@@ -117,8 +122,11 @@ function SettingsEditor({
           </label>
         )
       })}
-      <fieldset>
-        <legend>Weekly report delivery</legend>
+      <fieldset
+        disabled
+        title="Email delivery has been removed. Download reports from Reports."
+      >
+        <legend>Weekly email delivery (disabled)</legend>
         <label className="checkbox-field">
           <input
             type="checkbox"
@@ -146,7 +154,9 @@ function SettingsEditor({
                       ...form,
                       weeklyRecipients: event.target.checked
                         ? [...form.weeklyRecipients, user.id]
-                        : form.weeklyRecipients.filter((id) => id !== user.id),
+                        : form.weeklyRecipients.filter(
+                            (id) => id !== user.id,
+                          ),
                     })
                   }
                 />
@@ -246,9 +256,11 @@ function Accounts({
     [form, setForm] = useState({
       name: '',
       email: '',
-      microsoftId: '',
+      password: '',
       role: 'staff',
     }),
+    [resetting, setResetting] = useState<ManagedUser | null>(null),
+    [password, setPassword] = useState(''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false)
   const filtered = users.filter((user) =>
@@ -256,13 +268,27 @@ function Accounts({
         value?.toLowerCase().includes(q.toLowerCase()),
       ),
     ),
-    currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / 20)))
-  async function save(input: object) {
+    currentPage = Math.min(
+      page,
+      Math.max(1, Math.ceil(filtered.length / 20)),
+    )
+  async function save(input: {
+    id?: string
+    password?: string
+    [key: string]: unknown
+  }) {
     setBusy(true)
     setError('')
     try {
       await apiRequest('/portal/admin/users', input)
+      if (input.password && input.id === apiSession()?.user.id) {
+        clearApiSession()
+        return
+      }
       setCreating(false)
+      setForm({ name: '', email: '', password: '', role: 'staff' })
+      setResetting(null)
+      setPassword('')
       refresh()
     } catch (reason) {
       setError(
@@ -290,7 +316,11 @@ function Accounts({
         </label>
         <button
           className="button secondary"
-          onClick={() => setCreating(!creating)}
+          onClick={() => {
+            setCreating(!creating)
+            setResetting(null)
+            setPassword('')
+          }}
         >
           <UserPlus size={16} />
           {creating ? 'Cancel new staff' : 'Add staff account'}
@@ -304,19 +334,32 @@ function Accounts({
             void save(form)
           }}
         >
-          {(['name', 'email', 'microsoftId'] as const).map((key) => (
+          {(['name', 'email', 'password'] as const).map((key) => (
             <label className="field" key={key}>
               <span>
                 {
                   {
                     name: 'Staff name',
                     email: 'Staff email',
-                    microsoftId: 'Microsoft object ID',
+                    password: 'Staff password',
                   }[key]
                 }
               </span>
               <input
-                type={key === 'email' ? 'email' : 'text'}
+                type={
+                  key === 'password'
+                    ? 'password'
+                    : key === 'email'
+                      ? 'email'
+                      : 'text'
+                }
+                autoComplete={
+                  key === 'password' ? 'new-password' : undefined
+                }
+                minLength={key === 'password' ? 8 : undefined}
+                maxLength={
+                  key === 'password' ? 72 : key === 'email' ? 254 : 160
+                }
                 value={form[key]}
                 required
                 onChange={(event) =>
@@ -343,6 +386,43 @@ function Accounts({
           </button>
         </form>
       )}
+      {resetting && (
+        <form
+          className="management-form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void save({ id: resetting.id, password })
+          }}
+        >
+          <label className="field">
+            <span>New password for {resetting.email}</span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              maxLength={72}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </label>
+          <button className="button primary" disabled={busy}>
+            <Save size={16} />
+            Update password
+          </button>
+          <button
+            type="button"
+            className="button secondary"
+            disabled={busy}
+            onClick={() => {
+              setResetting(null)
+              setPassword('')
+            }}
+          >
+            Cancel
+          </button>
+        </form>
+      )}
       {error && (
         <p className="field-error" role="alert">
           {error}
@@ -361,7 +441,7 @@ function Accounts({
               <th>Name / email</th>
               <th>Role</th>
               <th>Account status</th>
-              <th>Verified / last login</th>
+              <th>Last login</th>
             </tr>
           </thead>
           <tbody>
@@ -372,7 +452,20 @@ function Accounts({
                   <td>
                     {user.name}
                     <small>{user.email}</small>
-                    {user.microsoftId && <small>{user.microsoftId}</small>}
+                    <button
+                      className="icon-button"
+                      disabled={busy}
+                      title={`Reset password for ${user.email}`}
+                      aria-label={`Reset password for ${user.email}`}
+                      onClick={() => {
+                        setResetting(user)
+                        setCreating(false)
+                        setPassword('')
+                        setError('')
+                      }}
+                    >
+                      <KeyRound size={16} />
+                    </button>
                   </td>
                   <td>
                     {['staff', 'admin'].includes(user.role) ? (
@@ -381,7 +474,10 @@ function Accounts({
                         disabled={busy || user.id === apiSession()?.user.id}
                         value={user.role}
                         onChange={(event) =>
-                          void save({ id: user.id, role: event.target.value })
+                          void save({
+                            id: user.id,
+                            role: event.target.value,
+                          })
                         }
                       >
                         <option value="staff">Staff</option>
@@ -410,7 +506,6 @@ function Accounts({
                     </label>
                   </td>
                   <td>
-                    {user.verifiedAt ? 'Verified' : 'Unverified'}
                     <small>{user.lastLogin || 'No login yet'}</small>
                   </td>
                 </tr>
@@ -711,7 +806,8 @@ export function AdministrationPage() {
                   {busy ? 'Processing...' : 'Create backup'}
                 </button>
                 <button
-                  disabled={busy || !data.settings.weeklyEnabled}
+                  disabled
+                  title="Email delivery is disabled. Download reports from Reports instead."
                   className="button secondary"
                   onClick={() => void maintain('weekly-report')}
                 >

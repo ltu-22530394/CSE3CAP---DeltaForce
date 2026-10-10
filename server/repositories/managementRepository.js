@@ -3,8 +3,12 @@ import { getDatabase, withTransaction } from '../database/db.js'
 import { ApiError } from '../utils/apiError.js'
 import { recordAuditLog } from './auditRepository.js'
 import { validDate } from '../utils/dates.js'
-import { staffApplication, applicantApplication } from './portalRepository.js'
+import {
+  staffApplication,
+  applicantApplication,
+} from './portalRepository.js'
 import { applicationEmail } from '../integrations/email.js'
+import { hashPassword } from '../utils/password.js'
 
 const text = (value, max = 4000) => {
   if (typeof value !== 'string' || value.trim().length > max)
@@ -20,7 +24,11 @@ export function applicantProfile(user) {
     .prepare('SELECT * FROM applicants WHERE user_id = ?')
     .get(user.id)
   if (!row)
-    throw new ApiError(404, 'NOT_FOUND', 'Applicant profile was not found.')
+    throw new ApiError(
+      404,
+      'NOT_FOUND',
+      'Applicant profile was not found.',
+    )
   return {
     fullName: [row.first_name, row.last_name].filter(Boolean).join(' '),
     email: user.email,
@@ -48,7 +56,9 @@ export function saveApplicantProfile(user, input) {
     !value.address ||
     !value.suburb ||
     !/^\d{4}$/.test(value.postcode) ||
-    !['NSW', 'VIC', 'QLD', 'ACT', 'SA', 'WA', 'TAS', 'NT'].includes(value.state)
+    !['NSW', 'VIC', 'QLD', 'ACT', 'SA', 'WA', 'TAS', 'NT'].includes(
+      value.state,
+    )
   )
     throw new ApiError(
       400,
@@ -91,7 +101,7 @@ export function listUsers(filters = {}) {
   const rows = getDatabase()
     .prepare(
       `SELECT u.id, u.email, u.role_id AS role, u.account_status AS status, u.email_verified_at AS verifiedAt, u.last_login_at AS lastLogin,
-    COALESCE(s.full_name, trim(a.first_name || ' ' || a.last_name)) AS name, s.microsoft_identity_id AS microsoftId
+    COALESCE(s.full_name, trim(a.first_name || ' ' || a.last_name)) AS name
     FROM users u LEFT JOIN applicants a ON a.user_id = u.id LEFT JOIN staff_profiles s ON s.user_id = u.id ORDER BY u.created_at DESC, u.rowid DESC`,
     )
     .all()
@@ -105,51 +115,57 @@ export function listUsers(filters = {}) {
       (!filters.role || row.role === filters.role),
   )
 }
-export function saveUser(user, input) {
+export async function saveUser(user, input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input))
+    throw new ApiError(400, 'VALIDATION', 'Enter valid account details.')
+  const changingPassword = !input.id || Object.hasOwn(input, 'password')
+  let passwordHash
+  if (changingPassword) {
+    if (
+      typeof input.password !== 'string' ||
+      input.password.length < 8 ||
+      Buffer.byteLength(input.password, 'utf8') > 72
+    )
+      throw new ApiError(
+        400,
+        'VALIDATION',
+        'Password must contain at least 8 characters and at most 72 UTF-8 bytes.',
+      )
+    passwordHash = await hashPassword(input.password)
+  }
   return withTransaction((db) => {
     if (!input.id) {
       const email = text(input.email, 254).toLowerCase(),
-        name = text(input.name, 160),
-        microsoftId = text(input.microsoftId, 80)
+        name = text(input.name, 160)
       if (
         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
         name.length < 2 ||
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-          microsoftId,
-        ) ||
         !['staff', 'admin'].includes(input.role)
       )
         throw new ApiError(
           400,
           'VALIDATION',
-          'Enter a staff name, email, Microsoft object UUID and staff/admin role.',
+          'Enter a staff name, email, password and staff/admin role.',
         )
-      if (
-        db.prepare('SELECT id FROM users WHERE email = ?').get(email) ||
-        db
-          .prepare(
-            'SELECT id FROM staff_profiles WHERE microsoft_identity_id = ?',
-          )
-          .get(microsoftId)
-      )
+      if (db.prepare('SELECT id FROM users WHERE email = ?').get(email))
         throw new ApiError(
           409,
           'DUPLICATE_ACCOUNT',
-          'That email or Microsoft identity already has an account.',
+          'That email already has an account.',
         )
       const id = randomUUID()
       db.prepare(
-        "INSERT INTO users (id, email, role_id, email_verified_at) VALUES (?, ?, ?, datetime('now'))",
-      ).run(id, email, input.role)
+        'INSERT INTO users (id, email, password_hash, role_id) VALUES (?, ?, ?, ?)',
+      ).run(id, email, passwordHash, input.role)
       db.prepare(
-        'INSERT INTO staff_profiles (id, user_id, microsoft_identity_id, full_name) VALUES (?, ?, ?, ?)',
-      ).run(randomUUID(), id, microsoftId, name)
+        'INSERT INTO staff_profiles (id, user_id, full_name) VALUES (?, ?, ?)',
+      ).run(randomUUID(), id, name)
       recordAuditLog({
         actorUserId: user.id,
         action: 'staff.created',
         entityType: 'user',
         entityId: id,
-        newValue: { email, name, role: input.role, microsoftId },
+        newValue: { email, name, role: input.role },
       })
       return id
     }
@@ -201,12 +217,26 @@ export function saveUser(user, input) {
     db.prepare(
       "UPDATE users SET role_id = ?, account_status = ?, failed_login_count = 0, locked_until = NULL, updated_at = datetime('now') WHERE id = ?",
     ).run(role, status, input.id)
-    db.prepare('UPDATE auth_sessions SET revoked = 1 WHERE user_id = ?').run(
-      input.id,
-    )
+    db.prepare(
+      'UPDATE auth_sessions SET revoked = 1 WHERE user_id = ?',
+    ).run(input.id)
+    if (changingPassword)
+      db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(
+        passwordHash,
+        input.id,
+      )
+    for (const table of [
+      'password_reset_tokens',
+      'email_verification_tokens',
+    ])
+      db.prepare(
+        `UPDATE ${table} SET used_at = datetime('now') WHERE user_id = ? AND used_at IS NULL`,
+      ).run(input.id)
     recordAuditLog({
       actorUserId: user.id,
-      action: 'account.updated',
+      action: changingPassword
+        ? 'account.password_reset'
+        : 'account.updated',
       entityType: 'user',
       entityId: input.id,
       previousValue: previous,
@@ -243,7 +273,11 @@ export function manageApplication(user, id, input) {
         input.staffId &&
         !staffDirectory().some((staff) => staff.id === input.staffId)
       )
-        throw new ApiError(400, 'VALIDATION', 'Choose an active staff member.')
+        throw new ApiError(
+          400,
+          'VALIDATION',
+          'Choose an active staff member.',
+        )
       db.prepare(
         'UPDATE foster_applications SET assigned_staff_user_id = ? WHERE id = ?',
       ).run(input.staffId || null, id)
@@ -285,9 +319,9 @@ export function manageApplication(user, id, input) {
         )
         .get(row.applicant_id, id)
       if (!other)
-        db.prepare("UPDATE users SET role_id = 'applicant' WHERE id = ?").run(
-          row.user_id,
-        )
+        db.prepare(
+          "UPDATE users SET role_id = 'applicant' WHERE id = ?",
+        ).run(row.user_id)
     } else
       throw new ApiError(
         400,
@@ -360,9 +394,21 @@ export function updateAllocation(user, id, input) {
       )
     for (const key of ['startDate', 'endDate'])
       if (input[key] && !validDate(input[key]))
-        throw new ApiError(400, 'VALIDATION', 'Enter valid placement dates.')
-    if (input.endDate && input.startDate && input.endDate < input.startDate)
-      throw new ApiError(400, 'VALIDATION', 'End date must follow start date.')
+        throw new ApiError(
+          400,
+          'VALIDATION',
+          'Enter valid placement dates.',
+        )
+    if (
+      input.endDate &&
+      input.startDate &&
+      input.endDate < input.startDate
+    )
+      throw new ApiError(
+        400,
+        'VALIDATION',
+        'End date must follow start date.',
+      )
     const note = text(input.note || '', 2000)
     db.prepare(
       "UPDATE greyhound_allocations SET expected_start_date = ?, expected_end_date = ?, internal_notes = ?, updated_at = datetime('now') WHERE id = ?",

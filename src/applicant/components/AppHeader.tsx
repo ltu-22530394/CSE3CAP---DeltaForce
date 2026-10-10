@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import type { ReactElement } from 'react'
 
 interface AppHeaderProps {
@@ -14,7 +14,7 @@ export function AppHeader({
 }: AppHeaderProps): ReactElement {
   return (
     <header className="site-header">
-      <div className="brand" aria-label="Greyhound Adoption Program">
+      <Link className="brand" to="/" aria-label="GAP home">
         <img
           className="brand__logo"
           src="/assets/gap-logo-blue.png"
@@ -25,7 +25,7 @@ export function AppHeader({
           <p className="brand__name">GAP</p>
           <p className="brand__label">{portalLabel}</p>
         </div>
-      </div>
+      </Link>
 
       {applicantName ? (
         <p className="applicant-greeting">Welcome, {applicantName}</p>

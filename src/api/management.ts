@@ -18,7 +18,6 @@ export interface ManagedUser {
   email: string
   role: string
   status: string
-  microsoftId?: string
   lastLogin?: string
   verifiedAt?: string
 }

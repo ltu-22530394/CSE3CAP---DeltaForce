@@ -93,7 +93,9 @@ managementRouter.get(
   requireStaff,
   asyncRoute(async (req, res) =>
     res
-      .type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      .type(
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      )
       .attachment('application-status.xlsx')
       .send(Buffer.from(await exportReport(req.user, req.query, 'xlsx'))),
   ),
@@ -115,8 +117,11 @@ managementRouter.use('/admin', requireAuth, requireRole('admin'))
 managementRouter.get('/admin/users', (req, res) =>
   res.json({ users: listUsers(req.query) }),
 )
-managementRouter.post('/admin/users', (req, res) =>
-  res.json({ id: saveUser(req.user, req.body) }),
+managementRouter.post(
+  '/admin/users',
+  asyncRoute(async (req, res) =>
+    res.json({ id: await saveUser(req.user, req.body) }),
+  ),
 )
 managementRouter.get('/admin/templates', (_req, res) =>
   res.json({

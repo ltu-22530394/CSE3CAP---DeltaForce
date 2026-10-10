@@ -1,5 +1,7 @@
 # Requirements Traceability
 
+Revision: email/password login replaces Microsoft SSO and mailbox verification. Brevo/SMTP, emailed password recovery and weekly email reports are removed. Original client requirements remain unchanged in client-requirements.md; acceptance requires approval of this revised scope.
+
 Reviewed against the supplied client specification on 8 October 2026. This is a proof-of-concept completion review, not client acceptance or a production certification.
 
 **Implemented** means a code path exists and has been reviewed; tests provide representative evidence, not exhaustive proof of every clause. **Client Pending** means implementation exists but needs approved client input or operational validation. **Optional** identifies explicitly optional/future features. **Operational Pending** needs deployment, manual accessibility or production workload validation.
@@ -19,8 +21,8 @@ Reviewed against the supplied client specification on 8 October 2026. This is a 
 | FR-11 |  | Implemented | Verified email/password accounts, duplicate protection, reset tokens and consent. Authentication/business integration tests. |
 | FR-12 |  | Implemented | Verified email/password accounts, duplicate protection, reset tokens and consent. Authentication/business integration tests. |
 | FR-13 |  | Optional | Google identity / video-completion tracking are explicitly optional and not implemented. |
-| FR-14 |  | Implemented | Verified email/password accounts, duplicate protection, reset tokens and consent. Authentication/business integration tests. |
-| FR-15 |  | Implemented | Verified email/password accounts, duplicate protection, reset tokens and consent. Authentication/business integration tests. |
+| FR-14 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
+| FR-15 | | Partial / Revised Scope | Administrator-managed password reset revokes sessions and legacy tokens. Self-service emailed recovery is unavailable. |
 | FR-16 |  | Implemented | Verified email/password accounts, duplicate protection, reset tokens and consent. Authentication/business integration tests. |
 | FR-17 |  | Implemented | Applicant dashboard, profile API, staff-granted single correction, information response and withdrawal. completion API/browser tests. |
 | FR-18 |  | Implemented | Applicant dashboard, profile API, staff-granted single correction, information response and withdrawal. completion API/browser tests. |
@@ -29,9 +31,9 @@ Reviewed against the supplied client specification on 8 October 2026. This is a 
 | FR-21 |  | Implemented | Applicant dashboard, profile API, staff-granted single correction, information response and withdrawal. completion API/browser tests. |
 | FR-22 |  | Implemented | Applicant dashboard, profile API, staff-granted single correction, information response and withdrawal. completion API/browser tests. |
 | FR-23 |  | Implemented | Applicant dashboard, profile API, staff-granted single correction, information response and withdrawal. completion API/browser tests. |
-| FR-24 |  | Client Pending | Microsoft OIDC, signed tokens, tenant/object-ID authorization and roles implemented; externalIntegrations.node-test.js uses signed local fixtures. Live tenant credentials and approval needed. |
-| FR-25 |  | Client Pending | Microsoft OIDC, signed tokens, tenant/object-ID authorization and roles implemented; externalIntegrations.node-test.js uses signed local fixtures. Live tenant credentials and approval needed. |
-| FR-26 |  | Client Pending | Microsoft OIDC, signed tokens, tenant/object-ID authorization and roles implemented; externalIntegrations.node-test.js uses signed local fixtures. Live tenant credentials and approval needed. |
+| FR-24 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
+| FR-25 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
+| FR-26 | | Implemented | Private staff/admin provisioning, role checks and disabled-account protection; public signup cannot grant staff access. passwordLogin.node-test.js. |
 | FR-27 |  | Implemented | Backend requireStaff/requireRole and separate administrator functions; ownership and role regression tests. |
 | FR-28 |  | Implemented | Staff list/filter/review/decision, assigned staff, dates, private/shareable notes, correction permissions. Application and management repositories; API/browser tests. |
 | FR-29 |  | Implemented | Staff list/filter/review/decision, assigned staff, dates, private/shareable notes, correction permissions. Application and management repositories; API/browser tests. |
@@ -48,7 +50,7 @@ Reviewed against the supplied client specification on 8 October 2026. This is a 
 | FR-40 |  | Implemented | Staff list/filter/review/decision, assigned staff, dates, private/shareable notes, correction permissions. Application and management repositories; API/browser tests. |
 | FR-41 |  | Implemented | Approval changes role and unlocks resources; add/edit/archive resources, public versus restricted links; no quizzes. |
 | FR-42 |  | Implemented | Approval changes role and unlocks resources; add/edit/archive resources, public versus restricted links; no quizzes. |
-| FR-43 |  | Client Pending | Resource links, filtered carer fields, editable mail templates and contact settings implemented and tested. Client must supply approved content, field classifications and sender/contact details; SMTP tested locally only. |
+| FR-43 |  | Client Pending | Resource links, filtered carer fields, editable mail templates and contact settings implemented and tested. Client must supply approved content, field classifications and sender/contact details; external email delivery is disabled in this revision. |
 | FR-44 |  | Implemented | Approval changes role and unlocks resources; add/edit/archive resources, public versus restricted links; no quizzes. |
 | FR-45 |  | Implemented | Approval changes role and unlocks resources; add/edit/archive resources, public versus restricted links; no quizzes. |
 | FR-46 |  | Optional | Google identity / video-completion tracking are explicitly optional and not implemented. |
@@ -78,38 +80,38 @@ Reviewed against the supplied client specification on 8 October 2026. This is a 
 | FR-70 |  | Implemented | Revision-checked transactional allocation, unique active-dog constraint, dates/private notes, update/end/history and owner-only projection. API/browser tests. |
 | FR-71 |  | Implemented | Revision-checked transactional allocation, unique active-dog constraint, dates/private notes, update/end/history and owner-only projection. API/browser tests. |
 | FR-72 |  | Implemented | Revision-checked transactional allocation, unique active-dog constraint, dates/private notes, update/end/history and owner-only projection. API/browser tests. |
-| FR-73 |  | Client Pending | Resource links, filtered carer fields, editable mail templates and contact settings implemented and tested. Client must supply approved content, field classifications and sender/contact details; SMTP tested locally only. |
-| FR-74 |  | Client Pending | Resource links, filtered carer fields, editable mail templates and contact settings implemented and tested. Client must supply approved content, field classifications and sender/contact details; SMTP tested locally only. |
+| FR-73 |  | Client Pending | Resource links, filtered carer fields, editable mail templates and contact settings implemented and tested. Client must supply approved content, field classifications and sender/contact details; external email delivery is disabled in this revision. |
+| FR-74 |  | Client Pending | Resource links, filtered carer fields, editable mail templates and contact settings implemented and tested. Client must supply approved content, field classifications and sender/contact details; external email delivery is disabled in this revision. |
 | FR-75 |  | Implemented | Salesforce export import and identifiers; sample CSV and configurable mapping. Approved real sample still required. |
 | FR-76 |  | Implemented | Salesforce export import and identifiers; sample CSV and configurable mapping. Approved real sample still required. |
 | FR-77 |  | Implemented | Salesforce export import and identifiers; sample CSV and configurable mapping. Approved real sample still required. |
 | FR-78 |  | Implemented / Future | Read-only paginated Salesforce preview and explicit update-by-identifier import provided. No scheduled synchronization, Bulk API, write-back or webhooks. |
 | FR-79 |  | Implemented / Future | Read-only paginated Salesforce preview and explicit update-by-identifier import provided. No scheduled synchronization, Bulk API, write-back or webhooks. |
 | FR-80 |  | Implemented / Future | Read-only paginated Salesforce preview and explicit update-by-identifier import provided. No scheduled synchronization, Bulk API, write-back or webhooks. |
-| FR-81 |  | Client Pending | Read-only OAuth Salesforce connector implemented; GRNSW must approve integration credentials and permissions. |
-| FR-82 |  | Client Pending | Resource links, filtered carer fields, editable mail templates and contact settings implemented and tested. Client must supply approved content, field classifications and sender/contact details; SMTP tested locally only. |
-| FR-83 |  | Implemented | Durable email outbox, verification notification, editable templates, SMTP success/failure and retry. Preview sends no email; local SMTP fixture tests delivery contract. |
-| FR-84 |  | Client Pending | Resource links, filtered carer fields, editable mail templates and contact settings implemented and tested. Client must supply approved content, field classifications and sender/contact details; SMTP tested locally only. |
-| FR-85 |  | Client Pending | Resource links, filtered carer fields, editable mail templates and contact settings implemented and tested. Client must supply approved content, field classifications and sender/contact details; SMTP tested locally only. |
-| FR-86 |  | Implemented | Durable email outbox, verification notification, editable templates, SMTP success/failure and retry. Preview sends no email; local SMTP fixture tests delivery contract. |
-| FR-87 |  | Client Pending | Resource links, filtered carer fields, editable mail templates and contact settings implemented and tested. Client must supply approved content, field classifications and sender/contact details; SMTP tested locally only. |
-| FR-88 |  | Implemented | Durable email outbox, verification notification, editable templates, SMTP success/failure and retry. Preview sends no email; local SMTP fixture tests delivery contract. |
-| FR-89 |  | Implemented | Durable email outbox, verification notification, editable templates, SMTP success/failure and retry. Preview sends no email; local SMTP fixture tests delivery contract. |
-| FR-90 |  | Implemented | Durable email outbox, verification notification, editable templates, SMTP success/failure and retry. Preview sends no email; local SMTP fixture tests delivery contract. |
+| FR-81 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
+| FR-82 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
+| FR-83 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
+| FR-84 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
+| FR-85 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
+| FR-86 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
+| FR-87 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
+| FR-88 | | Partial / Revised Scope | Templates can be edited and used for stored business notification history. No external emails are sent. |
+| FR-89 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
+| FR-90 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
 | FR-91 |  | Implemented | All required report columns visible in paginated table and CSV/XLSX, complete filters, summary statistics, on-demand and configurable Monday report attachments; completion tests. |
 | FR-92 |  | Implemented | All required report columns visible in paginated table and CSV/XLSX, complete filters, summary statistics, on-demand and configurable Monday report attachments; completion tests. |
 | FR-93 |  | Implemented | All required report columns visible in paginated table and CSV/XLSX, complete filters, summary statistics, on-demand and configurable Monday report attachments; completion tests. |
-| FR-94 |  | Implemented | All required report columns visible in paginated table and CSV/XLSX, complete filters, summary statistics, on-demand and configurable Monday report attachments; completion tests. |
+| FR-94 | | Partial / Revised Scope | On-demand date-filtered CSV/Excel reports remain. Scheduled/manual weekly email delivery is disabled. |
 | FR-95 |  | Implemented | All required report columns visible in paginated table and CSV/XLSX, complete filters, summary statistics, on-demand and configurable Monday report attachments; completion tests. |
 | FR-96 |  | Implemented | All required report columns visible in paginated table and CSV/XLSX, complete filters, summary statistics, on-demand and configurable Monday report attachments; completion tests. |
 | FR-97 |  | Implemented | All required report columns visible in paginated table and CSV/XLSX, complete filters, summary statistics, on-demand and configurable Monday report attachments; completion tests. |
 | FR-98 |  | Implemented | All required report columns visible in paginated table and CSV/XLSX, complete filters, summary statistics, on-demand and configurable Monday report attachments; completion tests. |
 | SR-01 |  | Implemented | Backend roles/ownership, bcrypt, hashed single-use reset tokens, revoked/idle sessions, origin checks, parameterized SQL, React escaping, restricted-size CSV/XLSX and bounded workbook workers. Security API regressions; residual penetration test pending. |
-| SR-02 |  | Client Pending | Microsoft OIDC implemented and fixture-tested. MFA is enforced through the client's Entra Conditional Access policy; live tenant validation pending. |
+| SR-02 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
 | SR-03 |  | Implemented | Backend roles/ownership, bcrypt, hashed single-use reset tokens, revoked/idle sessions, origin checks, parameterized SQL, React escaping, restricted-size CSV/XLSX and bounded workbook workers. Security API regressions; residual penetration test pending. |
 | SR-04 |  | Implemented | Backend roles/ownership, bcrypt, hashed single-use reset tokens, revoked/idle sessions, origin checks, parameterized SQL, React escaping, restricted-size CSV/XLSX and bounded workbook workers. Security API regressions; residual penetration test pending. |
 | SR-05 |  | Implemented | Backend roles/ownership, bcrypt, hashed single-use reset tokens, revoked/idle sessions, origin checks, parameterized SQL, React escaping, restricted-size CSV/XLSX and bounded workbook workers. Security API regressions; residual penetration test pending. |
-| SR-06 |  | Client Pending | Microsoft OIDC implemented and fixture-tested. MFA is enforced through the client's Entra Conditional Access policy; live tenant validation pending. |
+| SR-06 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
 | SR-07 |  | Implemented | Backend roles/ownership, bcrypt, hashed single-use reset tokens, revoked/idle sessions, origin checks, parameterized SQL, React escaping, restricted-size CSV/XLSX and bounded workbook workers. Security API regressions; residual penetration test pending. |
 | SR-08 |  | Implemented | Backend roles/ownership, bcrypt, hashed single-use reset tokens, revoked/idle sessions, origin checks, parameterized SQL, React escaping, restricted-size CSV/XLSX and bounded workbook workers. Security API regressions; residual penetration test pending. |
 | SR-09 |  | Implemented | Backend roles/ownership, bcrypt, hashed single-use reset tokens, revoked/idle sessions, origin checks, parameterized SQL, React escaping, restricted-size CSV/XLSX and bounded workbook workers. Security API regressions; residual penetration test pending. |
@@ -177,22 +179,22 @@ Reviewed against the supplied client specification on 8 October 2026. This is a 
 | BR-12 |  | Implemented | Server-side eligibility, identity/ownership, role permissions, mandatory form approval check, unique greyhound IDs, transaction/active-allocation constraint and persistent history. businessIntegration/completion API tests. |
 | AC-01 |  | Implemented / Tested | Representative automated backend and browser acceptance workflows; formal client UAT/sign-off still required. |
 | AC-02 |  | Implemented / Tested | Representative automated backend and browser acceptance workflows; formal client UAT/sign-off still required. |
-| AC-03 |  | Client Pending | Emails queued and delivery contract tested using local SMTP fixture. Actual mailbox acceptance needs configured client SMTP and approved wording. |
+| AC-03 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
 | AC-04 |  | Implemented / Tested | Representative automated backend and browser acceptance workflows; formal client UAT/sign-off still required. |
 | AC-05 |  | Implemented / Tested | Representative automated backend and browser acceptance workflows; formal client UAT/sign-off still required. |
-| AC-06 |  | Client Pending | Emails queued and delivery contract tested using local SMTP fixture. Actual mailbox acceptance needs configured client SMTP and approved wording. |
+| AC-06 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
 | AC-07 |  | Implemented / Tested | Representative automated backend and browser acceptance workflows; formal client UAT/sign-off still required. |
 | AC-08 |  | Implemented / Tested | Representative automated backend and browser acceptance workflows; formal client UAT/sign-off still required. |
 | AC-09 |  | Implemented / Tested | Representative automated backend and browser acceptance workflows; formal client UAT/sign-off still required. |
 | AC-10 |  | Implemented / Tested | Representative automated backend and browser acceptance workflows; formal client UAT/sign-off still required. |
 | AC-11 |  | Implemented / Tested | Representative automated backend and browser acceptance workflows; formal client UAT/sign-off still required. |
 | AC-12 |  | Implemented / Tested | Representative automated backend and browser acceptance workflows; formal client UAT/sign-off still required. |
-| AC-13 |  | Client Pending | Signed Microsoft token/provider fixtures pass; live authorized tenant login cannot be accepted without client configuration. |
+| AC-13 | | Not Met in Revised Scope | Microsoft SSO/MFA, mailbox verification and external email delivery have been removed at the project team's request. Password-only login and stored notification history are not equivalent; client approval is required. |
 | AC-14 |  | Implemented / Tested | Representative automated backend and browser acceptance workflows; formal client UAT/sign-off still required. |
 
 ## Client Decisions Required
 
-Final foster form and required fields; approval/rejection rules; actual Salesforce sample/API fields; staff roles, tenant and MFA policy; SMTP sender and approved email copy; public/private and foster-visible resource/greyhound content; privacy/terms/retention policy; captioned media and branding; hosting, expected workload, backup recovery objectives and support owner.
+Final foster form and required fields; approval/rejection rules; actual Salesforce sample/API fields; staff roles, tenant and MFA policy; approval of password-only login and removed email delivery; public/private and foster-visible resource/greyhound content; privacy/terms/retention policy; captioned media and branding; hosting, expected workload, backup recovery objectives and support owner.
 
 ## Explicitly Not Claimed
 

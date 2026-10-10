@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom'
 import type { StaffUser } from '../api/model'
 import { initials } from '../api/model'
 import { Brand } from './Brand'
@@ -99,7 +105,15 @@ export function StaffShell({
         >
           <Icon name={navigationOpen ? 'close' : 'menu'} />
         </button>
-        <span>GAP</span>
+        <span>
+          <Link
+            to="/"
+            aria-label="GAP home"
+            onClick={() => setNavigationOpen(false)}
+          >
+            GAP
+          </Link>
+        </span>
       </header>
       {navigationOpen && (
         <button
@@ -119,7 +133,7 @@ export function StaffShell({
       >
         <NavLink
           className="brand"
-          to="/staff"
+          to="/"
           aria-label="GAP home"
           onClick={() => setNavigationOpen(false)}
         >

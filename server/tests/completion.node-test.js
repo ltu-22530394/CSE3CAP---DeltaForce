@@ -21,7 +21,8 @@ const { createApp } = await import('../app.js')
 const { getDatabase, closeDatabase, initializeDatabase } =
   await import('../database/db.js')
 const { createAccessToken } = await import('../utils/jwt.js')
-const { findPublicUserById } = await import('../repositories/userRepository.js')
+const { findPublicUserById } =
+  await import('../repositories/userRepository.js')
 const { csvCell, csvDocument } =
   await import('../integrations/greyhoundImport.js')
 const { config } = await import('../config.js')
@@ -58,7 +59,9 @@ async function request(method, route, body, token = admin) {
   const response = await fetch(base + route, {
     method,
     headers: {
-      ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+      ...(body === undefined
+        ? {}
+        : { 'content-type': 'application/json' }),
       ...(token ? { authorization: 'Bearer ' + token } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -69,7 +72,11 @@ async function request(method, route, body, token = admin) {
     : content.includes('spreadsheet')
       ? Buffer.from(await response.arrayBuffer())
       : await response.text()
-  return { status: response.status, body: value, headers: response.headers }
+  return {
+    status: response.status,
+    body: value,
+    headers: response.headers,
+  }
 }
 function staffAccount(role) {
   const db = getDatabase(),
@@ -90,13 +97,7 @@ async function applicant(email = form.email) {
     null,
   )
   assert.equal(applied.status, 201)
-  const token = new URLSearchParams(
-    new URL(applied.body.verificationUrl).hash.slice(1),
-  ).get('token')
-  assert.equal(
-    (await request('POST', '/api/auth/verify-email', { token }, null)).status,
-    200,
-  )
+  assert.equal(applied.body.verificationUrl, undefined)
   const login = await request(
     'POST',
     '/api/auth/login',
@@ -111,16 +112,23 @@ async function applicant(email = form.email) {
 }
 async function current() {
   return (
-    await request('GET', '/api/portal/staff/applications/' + application.id)
+    await request(
+      'GET',
+      '/api/portal/staff/applications/' + application.id,
+    )
   ).body.application
 }
 async function manage(action, details = {}) {
   const a = await current()
-  return request('POST', '/api/portal/staff/applications/' + a.id + '/manage', {
-    action,
-    revision: a.revision,
-    ...details,
-  })
+  return request(
+    'POST',
+    '/api/portal/staff/applications/' + a.id + '/manage',
+    {
+      action,
+      revision: a.revision,
+      ...details,
+    },
+  )
 }
 before(async () => {
   server = createApp().listen(0)
@@ -302,7 +310,10 @@ describe('requirements completion and security regressions', () => {
       JSON.parse(correctedAudit.previous_value_json).form.email,
       form.email,
     )
-    assert.equal((await current()).form.householdDetails, 'Two adults at home')
+    assert.equal(
+      (await current()).form.householdDetails,
+      'Two adults at home',
+    )
   })
   it('shows only active public resources to visitors and gates carer resources', async () => {
     for (const [title, restricted, active] of [
@@ -315,7 +326,8 @@ describe('requirements completion and security regressions', () => {
           await request('POST', '/api/portal/staff/resources', {
             title,
             type: 'pdf',
-            url: 'https://example.com/' + title.replaceAll(' ', '-') + '.pdf',
+            url:
+              'https://example.com/' + title.replaceAll(' ', '-') + '.pdf',
             requiresApproval: restricted,
             active,
           })
@@ -332,7 +344,8 @@ describe('requirements completion and security regressions', () => {
     )
     assert.equal(publicData.settings.weeklyRecipients, undefined)
     assert.equal(
-      (await request('GET', '/api/portal/resources', undefined, carer)).status,
+      (await request('GET', '/api/portal/resources', undefined, carer))
+        .status,
       403,
     )
     assert.equal(
@@ -357,8 +370,8 @@ describe('requirements completion and security regressions', () => {
       200,
     )
     assert.equal(
-      (await request('GET', '/api/portal/resources', undefined, carer)).body
-        .resources.length,
+      (await request('GET', '/api/portal/resources', undefined, carer))
+        .body.resources.length,
       2,
     )
   })
@@ -385,7 +398,11 @@ describe('requirements completion and security regressions', () => {
       behaviourNotes: 'Calm',
       photoUrl: 'https://example.com/buddy.jpg',
     }
-    const saved = await request('POST', '/api/portal/staff/greyhounds', input)
+    const saved = await request(
+      'POST',
+      '/api/portal/staff/greyhounds',
+      input,
+    )
     assert.equal(saved.status, 200)
     dog = saved.body.greyhound
     assert.equal(dog.feedingInformation, input.feedingInformation)
@@ -403,7 +420,10 @@ describe('requirements completion and security regressions', () => {
       { identifier: 'FULL-2', age: '', dateOfBirth: '' },
       { identifier: 'FULL-2', status: 'allocated' },
       { identifier: 'FULL-2', dateOfBirth: '2024-02-30' },
-      { identifier: 'FULL-2', photoUrl: 'https://user:password@example.com/a' },
+      {
+        identifier: 'FULL-2',
+        photoUrl: 'https://user:password@example.com/a',
+      },
     ])
       assert.equal(
         (
@@ -444,7 +464,12 @@ describe('requirements completion and security regressions', () => {
       200,
     )
     const applicantView = (
-      await request('GET', '/api/portal/applications/' + a.id, undefined, carer)
+      await request(
+        'GET',
+        '/api/portal/applications/' + a.id,
+        undefined,
+        carer,
+      )
     ).body.application.assignment
     assert.equal(applicantView.feedingInformation, 'Two meals daily')
     assert.equal(applicantView.internalNotes, undefined)
@@ -455,7 +480,11 @@ describe('requirements completion and security regressions', () => {
         await request(
           'POST',
           '/api/portal/staff/applications/' + a.id + '/allocation/update',
-          { revision: a.revision, startDate: today, endDate: '2020-01-01' },
+          {
+            revision: a.revision,
+            startDate: today,
+            endDate: '2020-01-01',
+          },
         )
       ).status,
       400,
@@ -516,7 +545,11 @@ describe('requirements completion and security regressions', () => {
         await request(
           'POST',
           '/api/portal/staff/applications/' + a.id + '/allocation/end',
-          { revision: a.revision, status: 'returned_early', returnDate: today },
+          {
+            revision: a.revision,
+            status: 'returned_early',
+            returnDate: today,
+          },
         )
       ).status,
       200,
@@ -533,7 +566,8 @@ describe('requirements completion and security regressions', () => {
     assert.equal((await manage('inactive')).status, 200)
     assert.ok((await current()).approvalDate)
     assert.equal(
-      (await request('GET', '/api/portal/resources', undefined, carer)).status,
+      (await request('GET', '/api/portal/resources', undefined, carer))
+        .status,
       403,
     )
   })
@@ -634,8 +668,8 @@ describe('requirements completion and security regressions', () => {
       'New feeding plan',
     )
     assert.equal(
-      (await request('GET', '/api/portal/staff/import-history')).body.batches
-        .length,
+      (await request('GET', '/api/portal/staff/import-history')).body
+        .batches.length,
       2,
     )
   })
@@ -694,17 +728,21 @@ describe('requirements completion and security regressions', () => {
     assert.equal(workbook.worksheets[0].rowCount, 2)
     assert.equal(workbook.worksheets[0].getCell('D2').value, '0499999999')
     assert.equal(
-      (await request('GET', '/api/portal/staff/reports.csv?from=2024-02-30'))
-        .status,
+      (
+        await request(
+          'GET',
+          '/api/portal/staff/reports.csv?from=2024-02-30',
+        )
+      ).status,
       400,
     )
     assert.equal(
-      (await request('GET', '/api/portal/staff/report-summary')).body.summary
-        .received,
+      (await request('GET', '/api/portal/staff/report-summary')).body
+        .summary.received,
       2,
     )
   })
-  it('restricts administration, provisions SSO staff and protects administrator access', async () => {
+  it('restricts administration, provisions password staff and protects administrator access', async () => {
     for (const route of [
       'users',
       'templates',
@@ -713,8 +751,14 @@ describe('requirements completion and security regressions', () => {
       'maintenance',
     ])
       assert.equal(
-        (await request('GET', '/api/portal/admin/' + route, undefined, staff))
-          .status,
+        (
+          await request(
+            'GET',
+            '/api/portal/admin/' + route,
+            undefined,
+            staff,
+          )
+        ).status,
         403,
       )
     assert.equal(
@@ -722,13 +766,14 @@ describe('requirements completion and security regressions', () => {
         await request('POST', '/api/portal/admin/users', {
           email: 'newstaff@gap.test',
           name: 'New Staff',
-          microsoftId: randomUUID(),
+          password: 'StaffPassword123!',
           role: 'staff',
         })
       ).status,
       200,
     )
-    const users = (await request('GET', '/api/portal/admin/users')).body.users
+    const users = (await request('GET', '/api/portal/admin/users')).body
+      .users
     assert.equal(
       users.some((u) => 'password_hash' in u),
       false,
@@ -764,8 +809,14 @@ describe('requirements completion and security regressions', () => {
       200,
     )
     assert.equal(
-      (await request('GET', '/api/portal/staff/directory', undefined, token))
-        .status,
+      (
+        await request(
+          'GET',
+          '/api/portal/staff/directory',
+          undefined,
+          token,
+        )
+      ).status,
       401,
     )
     assert.equal(
@@ -810,10 +861,14 @@ describe('requirements completion and security regressions', () => {
     )
     assert.equal(
       (
-        await request('POST', '/api/portal/admin/templates/password_reset', {
-          subject: 'Reset',
-          body: 'No link',
-        })
+        await request(
+          'POST',
+          '/api/portal/admin/templates/password_reset',
+          {
+            subject: 'Reset',
+            body: 'No link',
+          },
+        )
       ).status,
       400,
     )
@@ -827,7 +882,7 @@ describe('requirements completion and security regressions', () => {
       400,
     )
   })
-  it('queues one weekly report per local date with a durable CSV attachment only for staff', async () => {
+  it('disables email reports without creating notifications or attachments', async () => {
     const me = (await request('GET', '/api/auth/me')).body.user
     assert.equal(
       (
@@ -848,23 +903,19 @@ describe('requirements completion and security regressions', () => {
       ).status,
       200,
     )
-    assert.equal(
-      (await request('POST', '/api/portal/admin/weekly-report', {})).body
-        .queued,
-      true,
+    const report = await request(
+      'POST',
+      '/api/portal/admin/weekly-report',
+      {},
     )
-    assert.equal(
-      (await request('POST', '/api/portal/admin/weekly-report', {})).body
-        .alreadyQueued,
-      true,
-    )
+    assert.equal(report.status, 409)
+    assert.equal(report.body.error.code, 'EMAIL_DISABLED')
     const attachments = getDatabase()
       .prepare(
         "SELECT a.content FROM portal_notification_attachments a JOIN notifications n ON n.id = a.notification_id WHERE n.notification_type = 'weekly_report'",
       )
       .all()
-    assert.equal(attachments.length, 1)
-    assert.equal(parse(attachments[0].content, { bom: true }).length, 3)
+    assert.equal(attachments.length, 0)
     assert.equal(
       (await request('GET', '/api/portal/public', undefined, null)).body
         .settings.contactEmail,
@@ -878,13 +929,21 @@ describe('requirements completion and security regressions', () => {
       target = path.join(temp, 'restored.sqlite')
     const restore = spawnSync(
       process.execPath,
-      ['server/scripts/restore-db.js', '--source', source, '--target', target],
+      [
+        'server/scripts/restore-db.js',
+        '--source',
+        source,
+        '--target',
+        target,
+      ],
       { encoding: 'utf8' },
     )
     assert.equal(restore.status, 0, restore.stderr)
     const restored = new DatabaseSync(target, { readOnly: true })
     assert.equal(
-      restored.prepare('SELECT count(*) AS n FROM foster_applications').get().n,
+      restored
+        .prepare('SELECT count(*) AS n FROM foster_applications')
+        .get().n,
       2,
     )
     assert.equal(
@@ -917,7 +976,9 @@ describe('requirements completion and security regressions', () => {
       db.exec(schema)
       assert.equal(
         db
-          .prepare("SELECT sql FROM sqlite_schema WHERE name = 'notifications'")
+          .prepare(
+            "SELECT sql FROM sqlite_schema WHERE name = 'notifications'",
+          )
           .get()
           .sql.includes("'weekly_report'"),
         false,
@@ -1006,7 +1067,8 @@ describe('requirements completion and security regressions', () => {
     config.production = true
     try {
       assert.equal(
-        (await request('GET', '/api/portal/public', undefined, null)).status,
+        (await request('GET', '/api/portal/public', undefined, null))
+          .status,
         403,
       )
     } finally {

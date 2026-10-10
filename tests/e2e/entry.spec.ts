@@ -46,7 +46,9 @@ test('home choices and authentication remain reachable at desktop and mobile siz
         path: `test-results/home-${viewport.width}.png`,
         fullPage: true,
       })
-    await page.getByRole('link', { name: 'Applicant', exact: true }).click()
+    await page
+      .getByRole('link', { name: 'Applicant', exact: true })
+      .click()
     await expect(page).toHaveURL(/\/applicant\/login$/)
     await expect(
       page.getByRole('heading', { name: 'Applicant Login' }),
@@ -65,6 +67,10 @@ test('home choices and authentication remain reachable at desktop and mobile siz
     ).toBeVisible()
     await expect(
       page.getByRole('link', { name: 'Sign in with Microsoft' }),
+    ).toHaveCount(0)
+    await expect(page.getByLabel('Email', { exact: true })).toBeVisible()
+    await expect(
+      page.getByLabel('Password', { exact: true }),
     ).toBeVisible()
     await expect(
       page.getByRole('link', { name: 'Create an account' }),
@@ -77,7 +83,8 @@ test('home choices and authentication remain reachable at desktop and mobile siz
     const bottom = await page.evaluate(() => {
       window.scrollTo(0, document.documentElement.scrollHeight)
       return {
-        scrollable: document.documentElement.scrollHeight > window.innerHeight,
+        scrollable:
+          document.documentElement.scrollHeight > window.innerHeight,
         overflow: getComputedStyle(
           document.querySelector('.public-page--auth')!,
         ).overflowY,
@@ -87,7 +94,12 @@ test('home choices and authentication remain reachable at desktop and mobile siz
     if (viewport.height <= 600) expect(bottom.scrollable).toBe(true)
   }
   await page.setViewportSize({ width: 1280, height: 600 })
-  for (const route of ['/', '/applicant/login', '/staff/login', '/register']) {
+  for (const route of [
+    '/',
+    '/applicant/login',
+    '/staff/login',
+    '/register',
+  ]) {
     await page.goto(route)
     await expect(page.locator('.brand__logo')).toBeVisible()
     expect(
@@ -133,14 +145,7 @@ test('selected portals enforce account roles and staff screens scroll on laptops
   })
   expect(registration.status()).toBe(201)
   const registered = await registration.json()
-  const token = new URLSearchParams(
-    new URL(registered.verificationUrl).hash.slice(1),
-  ).get('token')
-  expect(
-    (
-      await request.post('/api/auth/verify-email', { data: { token } })
-    ).status(),
-  ).toBe(200)
+  expect(registered.verificationUrl).toBeUndefined()
   await page.goto('/')
   await page.getByRole('link', { name: 'Staff', exact: true }).click()
   await page.getByLabel('Email', { exact: true }).fill(email)
@@ -177,28 +182,34 @@ test('selected portals enforce account roles and staff screens scroll on laptops
     },
   })
   expect(staffLogin.status()).toBe(200)
-  const staffSession = await staffLogin.json()
-  // Provider signatures are checked separately; this fixture tests the browser handoff.
-  await page.route('**/api/auth/microsoft/exchange', (route) =>
-    route.fulfill({ json: staffSession }),
-  )
-  await page.goto('/staff/login#sso=browser-fixture')
+  await page.goto('/staff/login')
+  await page.getByLabel('Email', { exact: true }).fill('jamie@gap.example')
+  await page.getByLabel('Password', { exact: true }).fill('Greyhound2026!')
+  await page.getByRole('button', { name: 'Login', exact: true }).click()
   await expect(page).toHaveURL(/\/staff$/)
   await expect(page.locator('.dashboard-heading h1')).toBeVisible()
   expect(
-    await page.evaluate(() => localStorage.getItem('gap.applicant.session')),
+    await page.evaluate(() =>
+      localStorage.getItem('gap.applicant.session'),
+    ),
   ).toBeNull()
   await page.goto('/')
   await page.getByRole('link', { name: 'Applicant', exact: true }).click()
   await expect(page).toHaveURL(/\/applicant\/login$/)
 
-  const context = await browser.newContext({ baseURL: 'http://localhost:5174' })
+  const context = await browser.newContext({
+    baseURL: 'http://localhost:5174',
+  })
   try {
     const staff = await context.newPage()
     await staff.goto('/')
     await staff.getByRole('link', { name: 'Staff', exact: true }).click()
-    await staff.getByLabel('Email', { exact: true }).fill('jamie@gap.example')
-    await staff.getByLabel('Password', { exact: true }).fill('Greyhound2026!')
+    await staff
+      .getByLabel('Email', { exact: true })
+      .fill('jamie@gap.example')
+    await staff
+      .getByLabel('Password', { exact: true })
+      .fill('Greyhound2026!')
     await staff.getByRole('button', { name: 'Login', exact: true }).click()
     await expect(staff).toHaveURL(/\/staff$/)
     for (const viewport of [
@@ -228,7 +239,8 @@ test('selected portals enforce account roles and staff screens scroll on laptops
       const reachable = await table.evaluate((element) => {
         element.scrollLeft = element.scrollWidth
         return (
-          element.scrollWidth <= element.clientWidth || element.scrollLeft > 0
+          element.scrollWidth <= element.clientWidth ||
+          element.scrollLeft > 0
         )
       })
       expect(reachable).toBe(true)

@@ -4,7 +4,6 @@ export interface ApplicantUser {
   email: string
   role?: 'applicant' | 'foster_carer' | 'staff' | 'admin'
   applicantId?: string | null
-  verificationUrl?: string
 }
 
 export type PortalAudience = 'applicant' | 'staff'

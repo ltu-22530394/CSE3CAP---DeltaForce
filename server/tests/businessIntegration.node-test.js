@@ -15,10 +15,8 @@ process.env.EMAIL_MODE = 'preview'
 const { createApp } = await import('../app.js')
 const { getDatabase, closeDatabase } = await import('../database/db.js')
 const { createAccessToken } = await import('../utils/jwt.js')
-const { findPublicUserById } = await import('../repositories/userRepository.js')
-const { authorisedMicrosoftStaff } =
-  await import('../integrations/microsoft.js')
-const { config } = await import('../config.js')
+const { findPublicUserById } =
+  await import('../repositories/userRepository.js')
 let server,
   base,
   staffToken,
@@ -62,7 +60,9 @@ async function request(method, route, body, token) {
   const response = await fetch(base + route, {
     method,
     headers: {
-      ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+      ...(body !== undefined
+        ? { 'content-type': 'application/json' }
+        : {}),
       ...(token ? { authorization: 'Bearer ' + token } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -80,7 +80,12 @@ function staff(role = 'admin') {
     db = getDatabase()
   db.prepare(
     "INSERT INTO users (id, email, password_hash, role_id, email_verified_at) VALUES (?, ?, ?, ?, datetime('now'))",
-  ).run(id, id + '@gap.test', bcrypt.hashSync('StaffPassword123!', 4), role)
+  ).run(
+    id,
+    id + '@gap.test',
+    bcrypt.hashSync('StaffPassword123!', 4),
+    role,
+  )
   db.prepare(
     'INSERT INTO staff_profiles (id, user_id, full_name) VALUES (?, ?, ?)',
   ).run(randomUUID(), id, role + ' staff')
@@ -106,7 +111,8 @@ describe('connected foster business workflow', () => {
     })
     assert.equal(result.status, 400)
     assert.equal(
-      getDatabase().prepare('SELECT count(*) AS n FROM applicants').get().n,
+      getDatabase().prepare('SELECT count(*) AS n FROM applicants').get()
+        .n,
       0,
     )
   })
@@ -117,18 +123,19 @@ describe('connected foster business workflow', () => {
     })
     assert.equal(result.status, 400)
     assert.equal(
-      getDatabase().prepare('SELECT count(*) AS n FROM applicants').get().n,
+      getDatabase().prepare('SELECT count(*) AS n FROM applicants').get()
+        .n,
       0,
     )
   })
-  it('creates application, account, audit entries and pending emails atomically', async () => {
+  it('creates application, account, audit entries and notification history atomically', async () => {
     const result = await request('POST', '/api/portal/apply', {
       form,
       password: 'Password123!',
     })
     assert.equal(result.status, 201)
     applicationId = result.body.applicationId
-    assert.ok(result.body.verificationUrl)
+    assert.equal(result.body.verificationUrl, undefined)
     assert.equal(
       getDatabase()
         .prepare('SELECT count(*) AS n FROM portal_application_state')
@@ -136,24 +143,10 @@ describe('connected foster business workflow', () => {
       1,
     )
     assert.equal(
-      getDatabase().prepare('SELECT count(*) AS n FROM notifications').get().n,
-      2,
-    )
-    const premature = await request('POST', '/api/auth/login', {
-      email: form.email,
-      password: 'Password123!',
-    })
-    assert.equal(premature.body.error.code, 'EMAIL_NOT_VERIFIED')
-    const token = new URLSearchParams(
-      new URL(result.body.verificationUrl).hash.slice(1),
-    ).get('token')
-    assert.equal(
-      (await request('POST', '/api/auth/verify-email', { token })).status,
-      200,
-    )
-    assert.equal(
-      (await request('POST', '/api/auth/verify-email', { token })).status,
-      400,
+      getDatabase()
+        .prepare('SELECT count(*) AS n FROM notifications')
+        .get().n,
+      1,
     )
     const login = await request('POST', '/api/auth/login', {
       email: form.email,
@@ -181,8 +174,14 @@ describe('connected foster business workflow', () => {
   })
   it('uses backend role and ownership rules for resources and staff access', async () => {
     assert.equal(
-      (await request('GET', '/api/portal/resources', undefined, applicantToken))
-        .status,
+      (
+        await request(
+          'GET',
+          '/api/portal/resources',
+          undefined,
+          applicantToken,
+        )
+      ).status,
       403,
     )
     assert.equal(
@@ -201,15 +200,14 @@ describe('connected foster business workflow', () => {
       401,
     )
     const register = await request('POST', '/api/portal/apply', {
-      form: { ...form, fullName: 'Second Foster', email: 'second@example.com' },
+      form: {
+        ...form,
+        fullName: 'Second Foster',
+        email: 'second@example.com',
+      },
       password: 'Password123!',
     })
     secondId = register.body.applicationId
-    await request('POST', '/api/auth/verify-email', {
-      token: new URLSearchParams(
-        new URL(register.body.verificationUrl).hash.slice(1),
-      ).get('token'),
-    })
     secondToken = (
       await request('POST', '/api/auth/login', {
         email: 'second@example.com',
@@ -321,8 +319,8 @@ describe('connected foster business workflow', () => {
       200,
     )
     assert.equal(
-      (await request('GET', '/api/auth/me', undefined, applicantToken)).body
-        .user.role,
+      (await request('GET', '/api/auth/me', undefined, applicantToken))
+        .body.user.role,
       'foster_carer',
     )
     assert.equal(
@@ -356,13 +354,25 @@ describe('connected foster business workflow', () => {
       200,
     )
     assert.equal(
-      (await request('GET', '/api/portal/resources', undefined, applicantToken))
-        .body.resources.length,
+      (
+        await request(
+          'GET',
+          '/api/portal/resources',
+          undefined,
+          applicantToken,
+        )
+      ).body.resources.length,
       1,
     )
     assert.equal(
-      (await request('GET', '/api/portal/resources', undefined, secondToken))
-        .status,
+      (
+        await request(
+          'GET',
+          '/api/portal/resources',
+          undefined,
+          secondToken,
+        )
+      ).status,
       403,
     )
   })
@@ -389,7 +399,8 @@ describe('connected foster business workflow', () => {
     assert.equal(preview.body.successful, 1)
     assert.equal(preview.body.failed, 2)
     assert.equal(
-      getDatabase().prepare('SELECT count(*) AS n FROM greyhounds').get().n,
+      getDatabase().prepare('SELECT count(*) AS n FROM greyhounds').get()
+        .n,
       0,
     )
     const imported = await request(
@@ -422,8 +433,14 @@ describe('connected foster business workflow', () => {
       confirm: true,
     }
     assert.equal(
-      (await request('POST', '/api/portal/staff/import', input, staffToken))
-        .body.skipped,
+      (
+        await request(
+          'POST',
+          '/api/portal/staff/import',
+          input,
+          staffToken,
+        )
+      ).body.skipped,
       1,
     )
     assert.equal(
@@ -584,7 +601,7 @@ describe('connected foster business workflow', () => {
       ),
     )
     assert.ok(
-      emails.body.notifications.every((item) => item.status === 'pending'),
+      emails.body.notifications.every((item) => item.status === 'stored'),
     )
   })
   it('keeps integrated drafts private and locks their submitted answers', async () => {
@@ -634,33 +651,36 @@ describe('connected foster business workflow', () => {
       200,
     )
   })
-  it('uses single-use reset tokens and revokes sessions after a password change', async () => {
-    const reset = await request('POST', '/api/auth/forgot-password', {
-      email: form.email,
-    })
-    const token = new URLSearchParams(
-      new URL(reset.body.verificationUrl).hash.slice(1),
-    ).get('token')
+  it('requires an administrator to reset passwords and revokes existing sessions', async () => {
+    const user = getDatabase()
+      .prepare('SELECT id FROM users WHERE email = ?')
+      .get(form.email)
     assert.equal(
       (
-        await request('POST', '/api/auth/reset-password', {
-          token,
-          password: 'ChangedPassword123!',
-        })
+        await request(
+          'POST',
+          '/api/portal/admin/users',
+          {
+            id: user.id,
+            password: 'ChangedPassword123!',
+          },
+          staffToken,
+        )
       ).status,
       200,
     )
     assert.equal(
       (
         await request('POST', '/api/auth/reset-password', {
-          token,
+          email: form.email,
           password: 'ChangedAgain123!',
         })
       ).status,
-      400,
+      410,
     )
     assert.equal(
-      (await request('GET', '/api/auth/me', undefined, applicantToken)).status,
+      (await request('GET', '/api/auth/me', undefined, applicantToken))
+        .status,
       401,
     )
     assert.equal(
@@ -679,15 +699,15 @@ describe('connected foster business workflow', () => {
     assert.equal(login.status, 200)
     applicantToken = login.body.token
   })
-  it('returns actionable errors for unconfigured external integrations', async () => {
+  it('removes Microsoft endpoints and retains actionable Salesforce errors', async () => {
     assert.equal(
-      (await request('GET', '/api/auth/microsoft/start')).body.error.code,
-      'SSO_NOT_CONFIGURED',
+      (await request('GET', '/api/auth/microsoft/start')).status,
+      404,
     )
     assert.equal(
-      (await request('GET', '/api/auth/microsoft/callback?state=invalid')).body
-        .error.code,
-      'INVALID_SSO_STATE',
+      (await request('GET', '/api/auth/microsoft/callback?state=invalid'))
+        .status,
+      404,
     )
     assert.equal(
       (
@@ -700,26 +720,6 @@ describe('connected foster business workflow', () => {
       ).body.error.code,
       'SALESFORCE_NOT_CONFIGURED',
     )
-    config.microsoftTenantId = 'test-tenant'
-    config.microsoftStaffIds = ['allowed-object']
-    assert.throws(
-      () =>
-        authorisedMicrosoftStaff({
-          tid: 'wrong-tenant',
-          oid: 'allowed-object',
-        }),
-      /not authorised/,
-    )
-    assert.throws(
-      () =>
-        authorisedMicrosoftStaff({
-          tid: 'test-tenant',
-          oid: 'unapproved-object',
-        }),
-      /not authorised/,
-    )
-    config.microsoftTenantId = undefined
-    config.microsoftStaffIds = []
   })
   it('revokes sessions at logout and enforces inactivity expiry', async () => {
     assert.equal(
@@ -727,14 +727,16 @@ describe('connected foster business workflow', () => {
       204,
     )
     assert.equal(
-      (await request('GET', '/api/auth/me', undefined, secondToken)).status,
+      (await request('GET', '/api/auth/me', undefined, secondToken))
+        .status,
       401,
     )
     getDatabase()
       .prepare('UPDATE auth_sessions SET last_seen_at = ?')
       .run(Date.now() - 31 * 60 * 1000)
     assert.equal(
-      (await request('GET', '/api/auth/me', undefined, applicantToken)).status,
+      (await request('GET', '/api/auth/me', undefined, applicantToken))
+        .status,
       401,
     )
   })

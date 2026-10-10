@@ -4,9 +4,12 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gaps-application-api-'))
+const tempDir = fs.mkdtempSync(
+  path.join(os.tmpdir(), 'gaps-application-api-'),
+)
 process.env.GAPS_DB_FILE = path.join(tempDir, 'test.sqlite')
-process.env.JWT_SECRET = 'test-secret-that-is-long-enough-for-application-tests'
+process.env.JWT_SECRET =
+  'test-secret-that-is-long-enough-for-application-tests'
 process.env.NODE_ENV = 'test'
 const { createApp } = await import('../app.js')
 const { closeDatabase } = await import('../database/db.js')
@@ -35,11 +38,8 @@ before(async () => {
     termsAccepted: true,
     privacyConsent: true,
   })
-  await request('POST', '/api/auth/verify-email', {
-    token: new URLSearchParams(
-      new URL(registered.body.verificationUrl).hash.slice(1),
-    ).get('token'),
-  })
+  assert.equal(registered.status, 201)
+  assert.equal(registered.body.verificationUrl, undefined)
   const login = await request('POST', '/api/auth/login', {
     email: 'api@example.com',
     password: 'safe-password',
@@ -68,7 +68,10 @@ describe('applicant CRUD API', () => {
       (await request('GET', '/api/applications')).body.applications.length,
       1,
     )
-    assert.equal((await request('GET', `/api/applications/${id}`)).status, 200)
+    assert.equal(
+      (await request('GET', `/api/applications/${id}`)).status,
+      200,
+    )
   })
   it('updates a draft', async () => {
     const r = await request('PUT', `/api/applications/${id}`, {
@@ -116,8 +119,8 @@ describe('applicant CRUD API', () => {
       },
     })
     assert.equal(
-      (await request('POST', `/api/applications/${id}/submit`)).body.application
-        .status,
+      (await request('POST', `/api/applications/${id}/submit`)).body
+        .application.status,
       'submitted',
     )
     assert.equal(

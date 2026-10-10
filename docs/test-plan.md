@@ -4,23 +4,26 @@
 
 Commands: npm run check for lint, TypeScript, frontend tests, backend tests and production build; npm run test:e2e for Chrome browser workflows; npm audit for dependency advisory status.
 
-Current unit/API evidence: 52 frontend tests and 49 backend/volume tests pass, along with lint, TypeScript and build. Four browser workflows pass, including home portal selection, role-specific login, and scrolling across 320-1920px widths and short laptop screens. No known dependency vulnerabilities were reported by npm audit on 8 October 2026. These are local results, not production certification.
+Password-only revision verified on 11 October 2026: lint, TypeScript, production build, 52 frontend tests, 58 active API/business/security/volume tests and five Chrome workflows pass. Production-mode tests run without SMTP or Microsoft settings. CSS and image assets match the pre-change snapshot.
+
+The complete backend glob still reports five failures and five cancelled tests in staffApplicationApi.node-test.js and staffIntegration.node-test.js. These same failures were reproduced against the untouched pre-change project: obsolete /api/staff routes and an incomplete registration fixture. They are not fixed or silently excluded from npm run check. The 58-test result refers to the active seven API test files only. These are local results, not live deployment certification.
 
 | Area | Representative Checks | Source |
 | --- | --- | --- |
-| Public application/account | Required details/consent, atomic creation, duplicate email, verify before login | businessIntegration.node-test.js; business.spec.ts |
-| Authentication | Role/ownership, password length, reset links, session revocation and idle timeout | authApi.node-test.js; businessIntegration.node-test.js |
+| Public application/account | Required details/consent, atomic creation, duplicate email, immediate login without verification | businessIntegration.node-test.js; business.spec.ts |
+| Production password login | Bootstrap secrets and password hashing, no public staff signup, unverified applicant login, private password reset, revoked sessions/tokens, disabled accounts, lockout, migration and secret redaction | passwordLogin.node-test.js |
+| Authentication | Role/ownership, password length, administrator password reset, session revocation and idle timeout | authApi.node-test.js; businessIntegration.node-test.js |
 | Older CRUD API | Draft/ownership, complete modern submission validation, read-only submitted state | applicationApi.node-test.js |
 | Profile/correction | Selected contacts do not overwrite protected answers; one-time grant, account email, original date and previous audit value | completion.node-test.js |
 | Case workflow | Staff assignment/search, private versus shared notes, revision conflicts, withdrawal/inactive eligibility | completion.node-test.js; completion.spec.ts |
 | Resources | Public/active visibility, approval gating, HTTPS links, administrator-only edits | businessIntegration/completion tests |
 | Greyhounds/import | All metadata, unknown sex, compatibility, collision checks, malformed CSV/XLSX, formulas/macros/size limits, real Excel values and retained omitted care fields | completion.node-test.js |
 | Allocation | Approval/availability checks, unique dog and carer placement, expected/return dates, internal-note privacy, update/end/history | businessIntegration/completion tests |
-| Reports | Complete CSV/Excel columns, filters, formula protection, summaries, weekly deduplication and durable attachment | completion.node-test.js |
+| Reports | Complete CSV/Excel columns, filters, formula protection, summaries and explicit refusal of disabled weekly email delivery | completion.node-test.js |
 | Administration | Staff identity provisioning, secrets omitted, role/status limits, last/self admin protections and session revocation | completion.node-test.js |
 | Maintenance | Backup integrity, safe new-target restore, refusal to overwrite, migration foreign-key/content preservation | completion.node-test.js |
-| External contracts | Local SMTP success/failure; mocked paginated Salesforce OAuth; signed Microsoft tokens, PKCE/state binding and single-use handoff | externalIntegrations.node-test.js |
-| Browser/accessibility | Public submit/verify/review/import/allocation, profiles/admin/Excel/reports/maintenance, mobile/tablet/desktop overflow, axe WCAG-rule checks, JS errors and edit dialog | tests/e2e |
+| External contracts | No outbound email requests; mocked paginated Salesforce OAuth; removed Microsoft endpoints | externalIntegrations.node-test.js |
+| Browser/accessibility | Public submit/login/review/import/allocation, profiles/admin/Excel/reports/maintenance, mobile/tablet/desktop overflow, axe WCAG-rule checks, JS errors and edit dialog | tests/e2e |
 
 ## Volume Benchmark
 
@@ -39,8 +42,8 @@ Automated axe checks are not full WCAG compliance. Manual keyboard, zoom/reflow,
 ## Client UAT Checklist
 
 1. Compare every field and mandatory rule against the client's actual foster form.
-2. Verify real Microsoft identities, role restrictions, disabled accounts and tenant MFA.
-3. Confirm actual verification/approval/allocation/rejection emails reach the approved mailbox with agreed wording.
+2. Approve the replacement of Microsoft SSO/MFA with private staff passwords. Verify real role restrictions, disabled accounts and administrator recovery identity checks.
+3. Approve removal of mailbox verification, emailed password recovery, external notifications and weekly email reports. Confirm the portal never claims that an email was delivered.
 4. Import the actual Salesforce sample and inspect duplicate/error behavior and the visible-field policy.
 5. Test public versus restricted resources with approved, captioned, accessible content.
 6. Complete real staff review, placement changes/history and agreed report formatting.

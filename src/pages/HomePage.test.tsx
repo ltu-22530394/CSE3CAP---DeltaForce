@@ -15,5 +15,6 @@ describe('home portal selection', () => {
     expect(markup).toContain('href="/staff/login"')
     expect(markup).toContain('aria-label="Choose your portal"')
     expect(markup).toContain('/assets/gap-logo-blue.png')
+    expect(markup).toContain('class="brand" aria-label="GAP home" href="/"')
   })
 })

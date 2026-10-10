@@ -327,7 +327,7 @@ export function savePortalApplication(user, input, submit = false) {
     throw new ApiError(
       400,
       'VALIDATION',
-      'Use your verified account email in the application.',
+      'Use your account email in the application.',
     )
   const step = input.currentStep ?? 0
   if (!Number.isInteger(step) || step < 0 || step > 3)

@@ -6,7 +6,10 @@ import { Alert } from '../../../components/Alert'
 import { FormField } from '../../../components/FormField'
 import { useAuth } from '../AuthContext'
 import type { RegistrationValues, ValidationErrors } from '../authTypes'
-import { hasValidationErrors, validateRegistration } from '../authValidation'
+import {
+  hasValidationErrors,
+  validateRegistration,
+} from '../authValidation'
 
 const INITIAL_VALUES: RegistrationValues = {
   fullName: '',
@@ -42,13 +45,12 @@ export function RegisterForm(): ReactElement {
 
     try {
       setSubmitting(true)
-      const account = await register(values)
+      await register(values)
       navigate('/applicant/login', {
         replace: true,
         state: {
           registrationMessage:
-            'Registration successful. Verify your email address before logging in.',
-          verificationUrl: account.verificationUrl,
+            'Registration successful. You can now log in with your email and password.',
         },
       })
     } catch (error) {
@@ -155,7 +157,8 @@ export function RegisterForm(): ReactElement {
       </form>
 
       <p className="auth-panel__switch">
-        Already have an account? <Link to="/applicant/login">Login here</Link>
+        Already have an account?{' '}
+        <Link to="/applicant/login">Login here</Link>
       </p>
     </section>
   )

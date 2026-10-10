@@ -8,9 +8,9 @@ Applicants can submit applications and track their progress. Staff can review ap
 
 ## Main Features
 
-- **Applicant portal:** Registration, email verification, password recovery, foster applications, status tracking, and profile updates.
+- **Applicant portal:** Registration, email/password login, administrator-assisted password recovery, foster applications, status tracking, and profile updates.
 - **Staff dashboard:** Application activity, reviews, greyhound management, foster assignments, and reports.
-- **Administrator tools:** Account management, email templates, resources, system settings, audit logs, and backups.
+- **Administrator tools:** Account management, notification templates, resources, system settings, audit logs, and backups.
 - **Data management:** CSV and Excel imports, validation, import history, and downloadable reports.
 - **Connected workflows:** Application decisions, placements, greyhound availability, and notifications share the same backend data.
 
@@ -19,14 +19,14 @@ Applicants can submit applications and track their progress. Staff can review ap
 ### Applicants
 1. Select **Applicant** on the home page.
 2. Sign in or select **Apply to become a foster carer**.
-3. Complete the application and verify your email.
+3. Complete the application and choose a password. No verification email is needed.
 4. Sign in to track your application and respond to requests for information.
 5. Once approved, access approved-carer resources. Assigned greyhound details appear after staff arrange a placement.
 
 Signed-in applicants can save application drafts. Staff can permit corrections to submitted applications when necessary.
 
 ### Staff
-1. Select **Staff** on the home page and sign in with an authorised account.
+1. Select **Staff** on the home page and sign in with an authorised email and password.
 2. Review applications, record notes, request information, and make approval decisions.
 3. Add or update greyhound records, or import records from CSV or Excel.
 4. Assign available greyhounds to approved applicants and manage their placements.
@@ -35,13 +35,13 @@ Signed-in applicants can save application drafts. Staff can permit corrections t
 Selecting **Staff** does not grant staff permissions. Access must be authorised.
 
 ### Administrators
-Administrators manage staff access, email templates, system settings, published resources, audit records, backups, and scheduled reports through the staff portal.
+Administrators create private staff accounts, reset passwords, and manage settings, resources, audit records and backups through the staff portal. Public registration creates applicant accounts only.
 
 ## Tools Used
 
 - **Frontend:** React, TypeScript, Vite, React Router, CSS, and Lucide icons.
 - **Backend:** Node.js, Express, and SQLite.
-- **Integrations:** Microsoft Entra ID, SMTP email through Nodemailer, and a Salesforce connector.
+- **Data integration:** CSV/Excel import and an optional Salesforce connector. Microsoft SSO and external email delivery are not used in this version.
 - **Testing:** Vitest, Node.js tests, Playwright, accessibility checks, ESLint, and TypeScript checks.
 - **Collaboration and hosting:** Git, GitHub, and planned deployment through Render.
 
@@ -72,22 +72,27 @@ For a local demonstration, select **Staff** and use:
 
 This demonstration account is disabled in production.
 
-Local development uses email preview mode unless SMTP is configured. Follow the verification or password-reset link displayed by the application; preview mode does not send real emails. Configuration options are listed in [`.env.example`](.env.example). Never commit credentials or your `.env` file.
+Applicants can register and sign in immediately. Forgotten passwords are handled by an administrator after identity checks, not by email. Business notification history is stored in the portal; no verification, approval, allocation or weekly-report emails are sent. Configuration options are listed in [`.env.example`](.env.example). Never commit credentials or your `.env` file.
 
 ## Testing
 
-Run `npm run check` for linting, type checks, unit tests, backend tests, and a production build. Run `npm run test:e2e` separately for browser tests; Google Chrome is required.
+Run `npm run check` for linting, type checks, unit tests, backend tests, and a production build. Run `npm run test:e2e` separately for browser tests; Google Chrome is required. Current results and pre-existing legacy backend test failures are recorded in the [Test Plan](docs/test-plan.md).
 
 ## Deployment on Render
 
-Deployment is planned through **Render**. The current SQLite implementation requires a paid Web Service with a persistent disk.
+Deployment is planned through **Render**. Render Free can run a demonstration, but its local SQLite database and backups are lost on restart, redeployment or idle spin-down. Use synthetic data only. Reliable client storage requires a paid service with a persistent disk or a separately hosted database.
 
 1. Connect the project repository to Render and create a **Node Web Service** using the repository root.
 2. Set the **Build Command** to `npm ci --include=dev && npm run build`.
 3. Set the **Start Command** to `npm run start:api` and the **Health Check Path** to `/api/health`.
-4. Attach a persistent disk at `/var/data`. Set `GAPS_DB_FILE=/var/data/gaps.sqlite` and `BACKUP_DIR=/var/data/backups`.
-5. Configure production environment variables, including `NODE_ENV=production`, the HTTPS `APP_ORIGIN`, a strong `JWT_SECRET`, and `EMAIL_MODE=smtp` with valid SMTP settings. Let Render supply the port instead of setting the local `API_PORT`.
-6. Configure Microsoft Entra staff authentication and authorised staff accounts. Configure Salesforce when approved credentials and field mappings are available.
+4. For a free demonstration, set `GAPS_DB_FILE=server/data/gaps.sqlite` and `BACKUP_DIR=server/backups`. For a paid persistent disk mounted at `/var/data`, use paths under `/var/data` instead.
+5. Set `NODE_ENV=production`, `NODE_VERSION=24`, your actual HTTPS `APP_ORIGIN`, a generated random `JWT_SECRET` of at least 32 characters, `DEMO_STAFF_ENABLED=false` and the correct `TRUST_PROXY_HOPS` (normally `1` behind Render's proxy; verify after deployment). Let Render supply `PORT`; leave `API_PORT` unset.
+6. Privately set `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_NAME` and `BOOTSTRAP_ADMIN_PASSWORD` in Render. Choose a unique password of at least 16 characters and at most 72 UTF-8 bytes. These create the first administrator; sign in through **Staff** and use **Administration > Accounts** to create other staff accounts. Do not register the administrator through the public signup page.
+7. Remove obsolete `SMTP_*`, `EMAIL_*` and `MICROSOFT_*` settings. They are not required. Save and redeploy the updated GitHub code. Configure Salesforce only when approved credentials and mappings are available.
+
+Bootstrap does not overwrite existing passwords, promote applicants or reactivate disabled administrators. For an existing active Microsoft-only administrator, set the bootstrap email to that exact account to initialise its first password. Keep bootstrap credentials protected; a fresh free-service database needs them again. Full details are in the deployment guide.
+
+This demo login choice replaces the client's original Microsoft SSO and email requirements. Obtain client approval before using it for handover.
 
 The backend serves both the website and API. Use one service instance for the current SQLite design. External connectors are implemented, but live connections require configuration and testing before launch. See the [Deployment Guide](docs/deployment.md) for full settings, security checks, and backup procedures.
 
