@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import type { StaffUser } from './api/model'
 import {
   GREYHOUNDS_KEY,
@@ -28,8 +28,12 @@ import './styles/integrations.css'
 import './styles/management.css'
 import { AdministrationPage } from './pages/AdministrationPage'
 import { ApplicantProfilePage } from './pages/ApplicantProfilePage'
-import { PublicResourcesPage } from './pages/PublicResourcesPage'
+import {
+  PublicApplicationGate,
+  PublicResourcesPage,
+} from './pages/PublicResourcesPage'
 import { HomePage } from './pages/HomePage'
+import { NotFoundPage } from './pages/NotFoundPage'
 function readSession(): { user: StaffUser | null; error: Error | null } {
   try {
     return { user: staffApi.session(), error: null }
@@ -98,7 +102,9 @@ function PortalRoutes() {
               path="/apply"
               element={
                 <div className="applicant-surface">
-                  <ApplicationFormPage />
+                  <PublicApplicationGate>
+                    <ApplicationFormPage />
+                  </PublicApplicationGate>
                 </div>
               }
             />
@@ -280,19 +286,15 @@ function PortalRoutes() {
                 path="/staff/profile"
                 element={session.user && <ProfilePage user={session.user} />}
               />
-              <Route
-                path="*"
-                element={
-                  <div className="empty-state">
-                    <h1>Page not found</h1>
-                    <p>This page may have moved or is no longer available.</p>
-                    <Link className="button primary" to="/">
-                      Back to dashboard
-                    </Link>
-                  </div>
-                }
-              />
             </Route>
+            <Route
+              path="*"
+              element={
+                <div className="applicant-surface">
+                  <NotFoundPage />
+                </div>
+              }
+            />
           </Routes>
         )}
       </FeedbackProvider>

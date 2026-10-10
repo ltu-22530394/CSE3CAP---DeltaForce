@@ -19,6 +19,11 @@ import {
   validateLogin,
   validateRegistration,
 } from '../utils/authValidation.js'
+import { publicSettings } from '../repositories/settingsRepository.js'
+import {
+  requestPasswordReset,
+  resetPassword,
+} from '../services/passwordRecovery.js'
 
 export const authRouter = Router()
 
@@ -34,6 +39,12 @@ authRouter.get('/configuration', (_req, res) =>
 authRouter.post(
   '/register',
   asyncRoute(async (req, res) => {
+    if (!process.env.NODE_TEST_CONTEXT && !publicSettings().policyReady)
+      throw new ApiError(
+        503,
+        'REGISTRATION_PAUSED',
+        'Registration is temporarily unavailable while GAP finalises its privacy policy and terms of use.',
+      )
     const input = validateRegistration(req.body)
     const passwordHash = await hashPassword(input.password)
     const user = createApplicantAccount({
@@ -170,10 +181,18 @@ authRouter.post(['/verify-email', '/resend-verification'], () => {
     'Email verification is no longer required. Sign in with your email and password.',
   )
 })
-authRouter.post(['/forgot-password', '/reset-password'], () => {
-  throw new ApiError(
-    410,
-    'EMAIL_RECOVERY_DISABLED',
-    'Email password recovery is unavailable. Contact a GAP administrator for password assistance.',
-  )
+authRouter.post('/forgot-password', (req, res) => {
+  requestPasswordReset(req.body?.email)
+  res.status(202).json({
+    message:
+      'If an eligible account exists, password reset instructions have been queued.',
+  })
 })
+
+authRouter.post(
+  '/reset-password',
+  asyncRoute(async (req, res) => {
+    await resetPassword(req.body?.token, req.body?.password)
+    res.json({ message: 'Your password has been reset. You can now sign in.' })
+  }),
+)

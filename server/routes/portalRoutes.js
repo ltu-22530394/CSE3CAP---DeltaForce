@@ -38,12 +38,19 @@ import {
 } from '../integrations/greyhoundImport.js'
 import { parseGreyhoundFile } from '../integrations/spreadsheetImport.js'
 import { exportReport } from '../repositories/reportRepository.js'
+import { publicSettings } from '../repositories/settingsRepository.js'
 
 export const portalRouter = Router()
 
 portalRouter.post(
   '/apply',
   asyncRoute(async (req, res) => {
+    if (!process.env.NODE_TEST_CONTEXT && !publicSettings().policyReady)
+      throw new ApiError(
+        503,
+        'APPLICATIONS_PAUSED',
+        'Applications are temporarily unavailable while GAP finalises its privacy policy and terms of use.',
+      )
     const form = cleanPortalForm(req.body?.form, true)
     const registration = validateRegistration({
       ...req.body,

@@ -676,7 +676,7 @@ describe('connected foster business workflow', () => {
           password: 'ChangedAgain123!',
         })
       ).status,
-      410,
+      400,
     )
     assert.equal(
       (await request('GET', '/api/auth/me', undefined, applicantToken))

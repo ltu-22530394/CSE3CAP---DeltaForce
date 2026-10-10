@@ -22,8 +22,10 @@ export function AppHeader({
           aria-hidden="true"
         />
         <div>
-          <p className="brand__name">GAP</p>
-          <p className="brand__label">{portalLabel}</p>
+          <p className="brand__name">Greyhounds as Pets</p>
+          {portalLabel !== 'Greyhound Adoption Program' && (
+            <p className="brand__label">{portalLabel}</p>
+          )}
         </div>
       </Link>
 

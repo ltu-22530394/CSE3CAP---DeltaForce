@@ -99,9 +99,13 @@ export function saveSettings(user, input) {
   return value
 }
 export function publicSettings() {
-  return Object.fromEntries(
+  const settings = Object.fromEntries(
     Object.entries(portalSettings()).filter(
       ([key]) => !['weeklyEnabled', 'weeklyRecipients'].includes(key),
     ),
   )
+  return {
+    ...settings,
+    policyReady: Boolean(settings.privacyUrl && settings.termsUrl),
+  }
 }

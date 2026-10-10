@@ -7,6 +7,7 @@ export interface PublicSettings {
   basicRequirements: string
   privacyText: string
   termsText: string
+  policyReady: boolean
 }
 export interface PortalSettings extends PublicSettings {
   weeklyEnabled: boolean

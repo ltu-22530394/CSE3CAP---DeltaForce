@@ -4,7 +4,9 @@ import { ApplicantPortalShell } from '../applicant/features/applicant/components
 import { apiRequest } from '../api/http'
 import type { PublicSettings } from '../api/management'
 import { ErrorState, Loading, useResource } from '../components/AsyncView'
-export function PublicResourcesPage() {
+import type { ReactNode } from 'react'
+
+function usePublicPortal() {
   const load = useCallback(
     () =>
       apiRequest<{
@@ -18,7 +20,41 @@ export function PublicResourcesPage() {
       }>('/portal/public'),
     [],
   )
-  const { data, error, retry } = useResource(load, 'public')
+  return useResource(load, 'public')
+}
+
+export function PublicApplicationGate({ children }: { children: ReactNode }) {
+  const { data, error, retry } = usePublicPortal()
+  if (error)
+    return (
+      <ApplicantPortalShell>
+        <ErrorState error={error} retry={retry} />
+      </ApplicantPortalShell>
+    )
+  if (!data)
+    return (
+      <ApplicantPortalShell>
+        <Loading />
+      </ApplicantPortalShell>
+    )
+  if (!data.settings.policyReady)
+    return (
+      <ApplicantPortalShell>
+        <main className="account-action">
+          <h1>Applications temporarily paused</h1>
+          <p>
+            GAP is finalising its privacy policy and terms of use. No personal
+            information can be submitted until those documents are published.
+          </p>
+          <Link to="/privacy">View privacy and terms status</Link>
+        </main>
+      </ApplicantPortalShell>
+    )
+  return <>{children}</>
+}
+
+export function PublicResourcesPage() {
+  const { data, error, retry } = usePublicPortal()
   return (
     <ApplicantPortalShell>
       <main className="account-action public-resources">
@@ -52,9 +88,16 @@ export function PublicResourcesPage() {
               </p>
             )}
             <div className="dialog-actions">
-              <Link className="button primary" to="/apply">
-                Start foster application
-              </Link>
+              {data.settings.policyReady ? (
+                <Link className="button primary" to="/apply">
+                  Start foster application
+                </Link>
+              ) : (
+                <p role="status">
+                  Applications are temporarily paused while GAP finalises its
+                  privacy policy and terms of use.
+                </p>
+              )}
               <Link to="/privacy">Privacy and terms</Link>
             </div>
           </>

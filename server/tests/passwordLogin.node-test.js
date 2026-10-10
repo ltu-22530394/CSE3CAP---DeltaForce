@@ -351,13 +351,8 @@ describe('password login in production without email or Microsoft', () => {
     )
     config.bootstrapAdminEmail = 'admin@example.test'
   })
-  it('removes provider endpoints and refuses public password recovery or verification', async () => {
-    for (const route of [
-      'verify-email',
-      'resend-verification',
-      'forgot-password',
-      'reset-password',
-    ]) {
+  it('removes provider endpoints, keeps verification disabled and supports password recovery', async () => {
+    for (const route of ['verify-email', 'resend-verification']) {
       const response = await request('POST', '/api/auth/' + route, {
         email: 'applicant@example.test',
         token: 'old-token',
@@ -366,6 +361,23 @@ describe('password login in production without email or Microsoft', () => {
       assert.equal(response.status, 410)
       assert.equal(response.body.verificationUrl, undefined)
     }
+    assert.equal(
+      (
+        await request('POST', '/api/auth/forgot-password', {
+          email: 'applicant@example.test',
+        })
+      ).status,
+      202,
+    )
+    assert.equal(
+      (
+        await request('POST', '/api/auth/reset-password', {
+          token: 'old-token',
+          password: 'UnsafeReset123!',
+        })
+      ).status,
+      400,
+    )
     assert.equal(
       (await request('GET', '/api/auth/microsoft/start')).status,
       404,

@@ -799,6 +799,10 @@ export function ApplicationFormPage(): ReactElement | null {
   const [isLoading, setIsLoading] = useState(Boolean(applicationId))
   const [isSaving, setIsSaving] = useState(false)
   const [password, setPassword] = useState('')
+  const [passwordErrors, setPasswordErrors] = useState<{
+    password?: string
+    confirmPassword?: string
+  }>({})
   const [confirmPassword, setConfirmPassword] = useState('')
 
   useEffect(() => {
@@ -866,25 +870,45 @@ export function ApplicationFormPage(): ReactElement | null {
   }
 
   function handleNext(): void {
-    if (
-      publicMode &&
-      currentStep === 0 &&
-      (password.length < 8 ||
-        new TextEncoder().encode(password).length > 72 ||
-        password !== confirmPassword)
-    ) {
-      setRequestError(
-        'Use at least 8 characters and at most 72 UTF-8 bytes, and confirm your password.',
-      )
-      return
-    }
     if (readOnly) {
       goToStep(Math.min(currentStep + 1, APPLICATION_STEPS.length - 1))
       return
     }
     const nextErrors = validateApplicationStep(currentStep, form)
     setErrors(nextErrors)
-    if (!hasApplicationErrors(nextErrors)) goToStep(currentStep + 1)
+    const nextPasswordErrors: {
+      password?: string
+      confirmPassword?: string
+    } = {}
+    if (publicMode && currentStep === 0) {
+      if (!password) nextPasswordErrors.password = 'Password is required.'
+      else if (
+        password.length < 8 ||
+        new TextEncoder().encode(password).length > 72
+      )
+        nextPasswordErrors.password =
+          'Use at least 8 characters and at most 72 UTF-8 bytes.'
+      if (!confirmPassword)
+        nextPasswordErrors.confirmPassword = 'Confirm your password.'
+      else if (password !== confirmPassword)
+        nextPasswordErrors.confirmPassword = 'Passwords do not match.'
+    }
+    setPasswordErrors(nextPasswordErrors)
+    if (
+      hasApplicationErrors(nextErrors) ||
+      Object.keys(nextPasswordErrors).length
+    ) {
+      setRequestError('Check the highlighted fields.')
+      window.requestAnimationFrame(() => {
+        const firstInvalid = document.querySelector<HTMLElement>(
+          '[aria-invalid="true"]',
+        )
+        firstInvalid?.focus()
+      })
+      return
+    }
+    setRequestError('')
+    goToStep(currentStep + 1)
   }
 
   async function handleSaveDraft(): Promise<void> {
@@ -1061,7 +1085,14 @@ export function ApplicationFormPage(): ReactElement | null {
                     type="password"
                     autoComplete="new-password"
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                    error={passwordErrors.password}
+                    onChange={(event) => {
+                      setPassword(event.target.value)
+                      setPasswordErrors((current) => ({
+                        ...current,
+                        password: undefined,
+                      }))
+                    }}
                   />
                   <FormField
                     id="apply-confirm-password"
@@ -1069,7 +1100,14 @@ export function ApplicationFormPage(): ReactElement | null {
                     type="password"
                     autoComplete="new-password"
                     value={confirmPassword}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    error={passwordErrors.confirmPassword}
+                    onChange={(event) => {
+                      setConfirmPassword(event.target.value)
+                      setPasswordErrors((current) => ({
+                        ...current,
+                        confirmPassword: undefined,
+                      }))
+                    }}
                   />
                 </div>
               )}

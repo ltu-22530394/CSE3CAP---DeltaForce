@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent, ReactElement } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -10,6 +10,8 @@ import {
   hasValidationErrors,
   validateRegistration,
 } from '../authValidation'
+import { apiRequest } from '../../../../api/http'
+import type { PublicSettings } from '../../../../api/management'
 
 const INITIAL_VALUES: RegistrationValues = {
   fullName: '',
@@ -25,8 +27,24 @@ export function RegisterForm(): ReactElement {
   const [errors, setErrors] = useState<ValidationErrors<RegistrationValues>>({})
   const [requestError, setRequestError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [policyReady, setPolicyReady] = useState(false)
+  const [policyChecked, setPolicyChecked] = useState(false)
   const { register } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    let active = true
+    apiRequest<{ settings: PublicSettings }>('/portal/public')
+      .then(({ settings }) => {
+        if (active) setPolicyReady(settings.policyReady)
+      })
+      .finally(() => {
+        if (active) setPolicyChecked(true)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   function updateField(event: ChangeEvent<HTMLInputElement>): void {
     const { name, value } = event.target
@@ -70,6 +88,12 @@ export function RegisterForm(): ReactElement {
       <p>Fill in your details to create an account.</p>
 
       <Alert>{requestError}</Alert>
+      {policyChecked && !policyReady && (
+        <Alert>
+          Registration is temporarily paused until GAP publishes its approved
+          privacy policy and terms of use.
+        </Alert>
+      )}
 
       <form onSubmit={handleSubmit} noValidate>
         <FormField
@@ -150,6 +174,7 @@ export function RegisterForm(): ReactElement {
           type="submit"
           disabled={
             submitting || !values.termsAccepted || !values.privacyConsent
+            || !policyReady
           }
         >
           {submitting ? 'Creating account…' : 'Register'}
