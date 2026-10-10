@@ -19,7 +19,6 @@ import {
   validateLogin,
   validateRegistration,
 } from '../utils/authValidation.js'
-import { publicSettings } from '../repositories/settingsRepository.js'
 import {
   requestPasswordReset,
   resetPassword,
@@ -39,12 +38,6 @@ authRouter.get('/configuration', (_req, res) =>
 authRouter.post(
   '/register',
   asyncRoute(async (req, res) => {
-    if (!process.env.NODE_TEST_CONTEXT && !publicSettings().policyReady)
-      throw new ApiError(
-        503,
-        'REGISTRATION_PAUSED',
-        'Registration is temporarily unavailable while GAP finalises its privacy policy and terms of use.',
-      )
     const input = validateRegistration(req.body)
     const passwordHash = await hashPassword(input.password)
     const user = createApplicantAccount({

@@ -90,8 +90,9 @@ export function RegisterForm(): ReactElement {
       <Alert>{requestError}</Alert>
       {policyChecked && !policyReady && (
         <Alert>
-          Registration is temporarily paused until GAP publishes its approved
-          privacy policy and terms of use.
+          This is a demonstration portal. GAP has not yet published its approved
+          privacy policy and terms of use, so do not enter sensitive or real
+          applicant information.
         </Alert>
       )}
 
@@ -174,7 +175,6 @@ export function RegisterForm(): ReactElement {
           type="submit"
           disabled={
             submitting || !values.termsAccepted || !values.privacyConsent
-            || !policyReady
           }
         >
           {submitting ? 'Creating account…' : 'Register'}
