@@ -34,6 +34,9 @@ export function createApp() {
             directives: {
               'img-src': ["'self'", 'data:', 'https:'],
               'style-src': ["'self'", "'unsafe-inline'"],
+              'script-src': ["'self'", 'https://accounts.google.com'],
+              'frame-src': ["'self'", 'https://accounts.google.com'],
+              'connect-src': ["'self'", 'https://accounts.google.com'],
             },
           }
         : false,

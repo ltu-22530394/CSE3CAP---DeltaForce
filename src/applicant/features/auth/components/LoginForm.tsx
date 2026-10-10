@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent, ReactElement } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
@@ -11,6 +11,15 @@ import type {
   ValidationErrors,
 } from '../authTypes'
 import { hasValidationErrors, validateLogin } from '../authValidation'
+import { apiRequest, saveApiSession } from '../../../../api/http'
+import type { ApiSession } from '../../../../api/http'
+import { saveStoredSession } from '../authSession'
+
+declare global {
+  interface Window {
+    google?: { accounts: { id: { initialize(options: object): void; renderButton(element: HTMLElement, options: object): void } } }
+  }
+}
 
 const INITIAL_VALUES: LoginCredentials = { email: '', password: '' }
 
@@ -30,10 +39,49 @@ export function LoginForm({
   )
   const [requestError, setRequestError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const googleButton = useRef<HTMLDivElement>(null)
   const { login } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const locationState = location.state as AuthLocationState | null
+
+  useEffect(() => {
+    let active = true
+    apiRequest<{ googleClientId: string | null }>('/auth/configuration')
+      .then(({ googleClientId }) => {
+        if (!active || !googleClientId) return
+        const render = () => {
+          if (!active || !window.google || !googleButton.current) return
+          window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: async ({ credential }: { credential: string }) => {
+              try {
+                setSubmitting(true)
+                const session = await apiRequest<ApiSession>('/auth/google', { credential, audience })
+                saveApiSession(session)
+                if (['staff', 'admin'].includes(session.user.role)) window.location.assign('/staff')
+                else {
+                  saveStoredSession({ token: session.token, user: session.user })
+                  window.location.assign('/applicant')
+                }
+              } catch (error) {
+                setRequestError(error instanceof Error ? error.message : 'Google Sign-In failed.')
+                setSubmitting(false)
+              }
+            },
+          })
+          window.google.accounts.id.renderButton(googleButton.current, { theme: 'outline', size: 'large', width: 320 })
+        }
+        if (window.google) return render()
+        const script = document.createElement('script')
+        script.src = 'https://accounts.google.com/gsi/client'
+        script.async = true
+        script.onload = render
+        document.head.appendChild(script)
+      })
+      .catch(() => {})
+    return () => { active = false }
+  }, [audience])
 
   function updateField(event: ChangeEvent<HTMLInputElement>): void {
     const { name, value } = event.target
@@ -88,6 +136,7 @@ export function LoginForm({
 
       <Alert tone="success">{locationState?.registrationMessage}</Alert>
       <Alert>{requestError}</Alert>
+      <div ref={googleButton} aria-label="Google Sign-In" />
       <form onSubmit={handleSubmit} noValidate>
         <FormField
           id="login-email"

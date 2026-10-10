@@ -50,6 +50,10 @@ export const config = {
     process.env.NODE_ENV !== 'production',
   demoStaffPassword: process.env.DEMO_STAFF_PASSWORD || 'Greyhound2026!',
   emailMode: 'disabled',
+  googleClientId: (
+    process.env.GOOGLE_CLIENT_ID ||
+    '840227453935-au02u35fe7vj0gtr5cn723vljfn56b6q.apps.googleusercontent.com'
+  ).trim(),
   bootstrapAdminEmail: (process.env.BOOTSTRAP_ADMIN_EMAIL || '')
     .trim()
     .toLowerCase(),

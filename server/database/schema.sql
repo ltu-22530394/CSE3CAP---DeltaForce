@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   email TEXT NOT NULL COLLATE NOCASE UNIQUE,
   password_hash TEXT,
+  google_identity_id TEXT UNIQUE,
   role_id TEXT NOT NULL DEFAULT 'applicant',
   account_status TEXT NOT NULL DEFAULT 'active'
     CHECK (account_status IN ('active', 'pending_verification', 'disabled', 'locked')),

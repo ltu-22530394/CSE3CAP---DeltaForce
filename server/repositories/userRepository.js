@@ -74,6 +74,31 @@ export function findUserCredentialsByEmail(email) {
     .get(email)
 }
 
+export function findOrCreateGoogleUser({ subject, email, fullName, audience }) {
+  const db = getDatabase()
+  let row = db
+    .prepare('SELECT id FROM users WHERE google_identity_id = ? OR email = ?')
+    .get(subject, email)
+  if (!row) {
+    if (audience === 'staff')
+      throw new ApiError(403, 'STAFF_NOT_PROVISIONED', 'Ask an administrator to create your staff account before using Google Sign-In.')
+    const parts = fullName.trim().split(/\s+/)
+    return createApplicantAccount({
+      email,
+      passwordHash: null,
+      firstName: parts.shift() || 'Google',
+      lastName: parts.join(' ') || 'User',
+      googleIdentityId: subject,
+    })
+  }
+  const user = findPublicUserById(row.id)
+  const staff = ['staff', 'admin'].includes(user.role)
+  if ((audience === 'staff') !== staff)
+    throw new ApiError(403, 'PORTAL_MISMATCH', `Use the ${staff ? 'staff' : 'applicant'} sign-in page for this account.`)
+  db.prepare('UPDATE users SET google_identity_id = COALESCE(google_identity_id, ?), email_verified_at = COALESCE(email_verified_at, datetime(\'now\')) WHERE id = ?').run(subject, row.id)
+  return findPublicUserById(row.id)
+}
+
 export function emailExists(email) {
   const row = getDatabase()
     .prepare('SELECT 1 AS found FROM users WHERE email = ? LIMIT 1')
@@ -87,6 +112,7 @@ export function createApplicantAccount({
   passwordHash,
   firstName,
   lastName,
+  googleIdentityId = null,
 }) {
   if (emailExists(email)) {
     throw new ApiError(
@@ -102,10 +128,10 @@ export function createApplicantAccount({
   withTransaction((db) => {
     db.prepare(
       `
-        INSERT INTO users (id, email, password_hash, role_id, account_status)
-        VALUES (?, ?, ?, 'applicant', 'active')
+        INSERT INTO users (id, email, password_hash, google_identity_id, role_id, account_status, email_verified_at)
+        VALUES (?, ?, ?, ?, 'applicant', 'active', CASE WHEN ? IS NULL THEN NULL ELSE datetime('now') END)
       `,
-    ).run(userId, email, passwordHash)
+    ).run(userId, email, passwordHash, googleIdentityId, googleIdentityId)
 
     db.prepare(
       `

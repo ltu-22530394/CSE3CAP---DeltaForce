@@ -7,6 +7,7 @@ import {
   createApplicantAccount,
   findPublicUserById,
   findUserCredentialsByEmail,
+  findOrCreateGoogleUser,
   markLoginFailure,
   markLoginSuccess,
   toAuthenticatedUser,
@@ -32,6 +33,32 @@ authRouter.get('/configuration', (_req, res) =>
     emailVerificationRequired: false,
     demoStaff: config.demoStaffEnabled,
     emailMode: config.emailMode,
+    googleClientId: config.googleClientId || null,
+  }),
+)
+
+authRouter.post(
+  '/google',
+  asyncRoute(async (req, res) => {
+    if (!config.googleClientId)
+      throw new ApiError(503, 'GOOGLE_DISABLED', 'Google Sign-In is not configured.')
+    const credential = String(req.body?.credential || '')
+    const audience = req.body?.audience === 'staff' ? 'staff' : 'applicant'
+    const response = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`,
+    )
+    const profile = await response.json().catch(() => ({}))
+    if (!response.ok || profile.aud !== config.googleClientId || profile.email_verified !== 'true')
+      throw new ApiError(401, 'INVALID_GOOGLE_TOKEN', 'Google Sign-In could not be verified.')
+    const user = findOrCreateGoogleUser({
+      subject: profile.sub,
+      email: String(profile.email).toLowerCase(),
+      fullName: String(profile.name || profile.email),
+      audience,
+    })
+    markLoginSuccess(user.id)
+    const token = createAccessToken(user)
+    res.json({ message: 'Google Sign-In successful.', token, tokenType: 'Bearer', expiresIn: config.jwtExpiresIn, user })
   }),
 )
 

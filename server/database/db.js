@@ -33,6 +33,12 @@ export function initializeDatabase(db = getDatabase()) {
     fs.readFileSync(new URL('./integration.sql', import.meta.url), 'utf8'),
   )
   db.exec(fs.readFileSync(new URL('./completion.sql', import.meta.url), 'utf8'))
+  const userColumns = db.prepare('PRAGMA table_info(users)').all()
+  if (!userColumns.some((column) => column.name === 'google_identity_id'))
+    db.exec('ALTER TABLE users ADD COLUMN google_identity_id TEXT')
+  db.exec(
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_identity_id ON users(google_identity_id) WHERE google_identity_id IS NOT NULL',
+  )
   const notificationSql = db
     .prepare("SELECT sql FROM sqlite_schema WHERE name = 'notifications'")
     .get().sql
